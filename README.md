@@ -211,7 +211,7 @@ Here’s a brief explanation of each environment variable in your `.env` file:
 
 MIT License
 
-Copyright (c) [2025] [Naser Almuhana]
+Copyright (c) [2026] [Md Arifur Rahman]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

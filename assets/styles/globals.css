@@ -160,3 +160,57 @@ html.dark .upload-field .text-white {
 .upload-field .text-white {
   color: #000 !important;
 }
+
+@keyframes product-text-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.product-card-3d {
+  transform-style: preserve-3d;
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.product-card-3d:hover {
+  transform: perspective(900px) translateY(-5px) rotateX(2deg) rotateY(-1deg);
+  box-shadow: 0 18px 32px -20px rgb(0 0 0 / 45%);
+}
+
+.product-card-image {
+  transition: transform 260ms ease;
+}
+
+.product-card-3d:hover .product-card-image {
+  transform: translateZ(20px) scale(1.035);
+}
+
+.product-card-title,
+.product-carousel-title {
+  animation: product-text-rise 500ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card-3d,
+  .product-card-image {
+    transition: none;
+  }
+
+  .product-card-3d:hover,
+  .product-card-3d:hover .product-card-image {
+    transform: none;
+  }
+
+  .product-card-title,
+  .product-carousel-title {
+    animation: none;
+  }
+}

@@ -363,6 +363,16 @@ export const DEMO_CATEGORY_TARGETS = {
   Electronics: 20,
 } as const
 
+export const CATEGORY_PRODUCT_IMAGES = {
+  Clothing: "/images/category-products/clothing.jpg",
+  Bags: "/images/category-products/bags.jpg",
+  Footwear: "/images/category-products/footwear.jpg",
+  Accessories: "/images/category-products/accessories.jpg",
+  "Home & Kitchen": "/images/category-products/home-kitchen.jpg",
+  "Home & Office": "/images/category-products/home-office.jpg",
+  Electronics: "/images/category-products/electronics.jpg",
+} satisfies Record<keyof typeof DEMO_CATEGORY_TARGETS, string>
+
 const additionalProducts = {
   Clothing: [
     "Linen Camp Collar Shirt",
@@ -536,7 +546,7 @@ const categoryDetails = {
     brand: "Brightpath",
     description:
       "A practical workspace essential for a more comfortable, organized day.",
-    startingPrice: 16,
+    startingPrice: 19.25,
     priceStep: 5.3,
   },
   Electronics: {
@@ -592,6 +602,15 @@ const supplementalDemoProducts = (
   }))
 })
 
-const demoProducts = [...initialDemoProducts, ...supplementalDemoProducts]
+const demoProducts = [...initialDemoProducts, ...supplementalDemoProducts].map(
+  (product) => ({
+    ...product,
+    images: [
+      CATEGORY_PRODUCT_IMAGES[
+        product.category as keyof typeof CATEGORY_PRODUCT_IMAGES
+      ],
+    ],
+  }),
+)
 
 export default demoProducts

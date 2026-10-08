@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-# ProStore---Fullstack-eCommerce-Platform
-=======
-# ProStore - Fullstack eCommerce Platform
+# ProStore E-Commerce Platform
 
 ProStore is a full-stack eCommerce website built with **Next.js 15**,**React 19**, **Prisma**, **TailwindCSS v4**, **Stripe**, **PayPal**, and more. It allows users to browse products, manage their carts, and complete purchases with various payment methods. The platform includes an admin dashboard for managing products, orders, and users.
 
@@ -9,10 +6,10 @@ ProStore is a full-stack eCommerce website built with **Next.js 15**,**React 19*
 
 ## 🌟 Live Demo
 
-- [Main Store](https://prostore-alpha-two.vercel.app/)
-- [Sample Product](https://prostore-alpha-two.vercel.app/product/polo-sporting-stretch-shirt)
-- [Product Search](https://prostore-alpha-two.vercel.app/search?q=all&category=Men%27s+Dress+Shirts&price=1-50&rating=all&sort=newest&page=1)
-- [Checkout Flow](https://prostore-alpha-two.vercel.app/cart) → [Shipping](https://prostore-alpha-two.vercel.app/shipping-address) → [Payment](https://prostore-alpha-two.vercel.app/payment-method) → [place-order](https://prostore-alpha-two.vercel.app/place-order)
+- [Main Store](https://pro-store-fullstack-e-commerce-plat.vercel.app/)
+- [Sample Product](https://pro-store-fullstack-e-commerce-plat.vercel.app/product/soft-knit-pullover)
+- [Product Search](https://pro-store-fullstack-e-commerce-plat.vercel.app/search)
+- [Checkout Flow](https://pro-store-fullstack-e-commerce-plat.vercel.app/cart) → [Shipping](https://pro-store-fullstack-e-commerce-plat.vercel.app/shipping-address) → [Payment](https://pro-store-fullstack-e-commerce-plat.vercel.app/payment-method) → [Place order](https://pro-store-fullstack-e-commerce-plat.vercel.app/place-order)
 
 ## 🚀 Features
 
@@ -84,7 +81,7 @@ Follow these steps to get the application up and running locally:
    Clone the repository to your local machine:
 
    ```bash
-   git clone https://github.com/your-username/prostore.git
+   git clone https://github.com/sojibpannashovon2/prostore-ecommerce-platform.git
    cd prostore
    ```
 
@@ -221,4 +218,3 @@ copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall
-

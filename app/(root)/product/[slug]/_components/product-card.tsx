@@ -14,22 +14,24 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="product-card-3d w-full max-w-sm">
       <CardHeader className="items-center p-0">
         <Link href={`/product/${product.slug}`}>
           <Image
+            className="product-card-image"
             src={product.images[0]}
             alt={product.name}
             height={300}
             width={300}
-            priority={true}
           />
         </Link>
       </CardHeader>
       <CardContent className="grid gap-4 p-4">
         <div className="text-xs">{product.brand}</div>
         <Link href={`/product/${product.slug}`}>
-          <h2 className="text-sm font-medium">{product.name}</h2>
+          <h2 className="product-card-title text-sm font-medium">
+            {product.name}
+          </h2>
         </Link>
         <div className="flex-between gap-4">
           <Rating value={Number(product.rating)} />

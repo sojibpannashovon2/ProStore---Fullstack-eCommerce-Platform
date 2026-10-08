@@ -44,6 +44,18 @@ async function main() {
       skipDuplicates: true,
     })
 
+    await prisma.$transaction(
+      demoProducts.map((product) =>
+        prisma.product.updateMany({
+          where: { slug: product.slug },
+          data: {
+            images: product.images,
+            price: product.price,
+          },
+        }),
+      ),
+    )
+
     const finalCounts = await prisma.product.groupBy({
       by: ["category"],
       _count: { _all: true },

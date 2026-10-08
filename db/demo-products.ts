@@ -1,10 +1,11 @@
-const demoProducts = [
+const initialDemoProducts = [
   {
     name: "Everyday Cotton Crewneck Tee",
     slug: "everyday-cotton-crewneck-tee",
     category: "Clothing",
     brand: "Northline",
-    description: "A soft cotton crewneck tee made for comfortable everyday wear.",
+    description:
+      "A soft cotton crewneck tee made for comfortable everyday wear.",
     stock: 32,
     price: 18.99,
     rating: 0,
@@ -32,7 +33,8 @@ const demoProducts = [
     slug: "soft-knit-pullover",
     category: "Clothing",
     brand: "Northline",
-    description: "A lightweight knit pullover with a classic, easy-to-layer fit.",
+    description:
+      "A lightweight knit pullover with a classic, easy-to-layer fit.",
     stock: 14,
     price: 54,
     rating: 0,
@@ -46,7 +48,8 @@ const demoProducts = [
     slug: "weekend-zip-hoodie",
     category: "Clothing",
     brand: "Daymark",
-    description: "A brushed-fleece zip hoodie with a roomy hood and front pockets.",
+    description:
+      "A brushed-fleece zip hoodie with a roomy hood and front pockets.",
     stock: 21,
     price: 42.99,
     rating: 0,
@@ -74,7 +77,8 @@ const demoProducts = [
     slug: "lightweight-quilted-jacket",
     category: "Clothing",
     brand: "Daymark",
-    description: "A packable quilted jacket for cool mornings and changing weather.",
+    description:
+      "A packable quilted jacket for cool mornings and changing weather.",
     stock: 9,
     price: 89.95,
     rating: 0,
@@ -102,7 +106,8 @@ const demoProducts = [
     slug: "compact-everyday-crossbody",
     category: "Bags",
     brand: "Fieldwork",
-    description: "A compact crossbody bag with an adjustable strap and zip pockets.",
+    description:
+      "A compact crossbody bag with an adjustable strap and zip pockets.",
     stock: 17,
     price: 38.5,
     rating: 0,
@@ -116,7 +121,8 @@ const demoProducts = [
     slug: "classic-low-top-sneakers",
     category: "Footwear",
     brand: "Stridewell",
-    description: "Clean low-top sneakers with a cushioned footbed for daily use.",
+    description:
+      "Clean low-top sneakers with a cushioned footbed for daily use.",
     stock: 24,
     price: 72,
     rating: 0,
@@ -172,7 +178,8 @@ const demoProducts = [
     slug: "insulated-travel-tumbler",
     category: "Home & Kitchen",
     brand: "Brightpath",
-    description: "A double-wall stainless steel tumbler that keeps drinks at temperature.",
+    description:
+      "A double-wall stainless steel tumbler that keeps drinks at temperature.",
     stock: 35,
     price: 27.99,
     rating: 0,
@@ -200,7 +207,8 @@ const demoProducts = [
     slug: "soft-woven-throw-blanket",
     category: "Home & Kitchen",
     brand: "Hearthside",
-    description: "A cozy woven throw blanket sized for a sofa or favorite chair.",
+    description:
+      "A cozy woven throw blanket sized for a sofa or favorite chair.",
     stock: 12,
     price: 49.99,
     rating: 0,
@@ -214,7 +222,8 @@ const demoProducts = [
     slug: "acacia-serving-board",
     category: "Home & Kitchen",
     brand: "Hearthside",
-    description: "A smooth acacia wood serving board for snacks and small bites.",
+    description:
+      "A smooth acacia wood serving board for snacks and small bites.",
     stock: 15,
     price: 36,
     rating: 0,
@@ -228,7 +237,8 @@ const demoProducts = [
     slug: "adjustable-desk-lamp",
     category: "Home & Office",
     brand: "Brightpath",
-    description: "A compact desk lamp with an adjustable neck and warm LED light.",
+    description:
+      "A compact desk lamp with an adjustable neck and warm LED light.",
     stock: 10,
     price: 44.95,
     rating: 0,
@@ -242,7 +252,8 @@ const demoProducts = [
     slug: "recycled-paper-notebook-trio",
     category: "Home & Office",
     brand: "Papertrail",
-    description: "Three lay-flat notebooks made with recycled paper for notes and lists.",
+    description:
+      "Three lay-flat notebooks made with recycled paper for notes and lists.",
     stock: 40,
     price: 16,
     rating: 0,
@@ -256,7 +267,8 @@ const demoProducts = [
     slug: "wireless-compact-keyboard",
     category: "Electronics",
     brand: "Keyhaven",
-    description: "A quiet wireless keyboard with a compact layout for home or travel.",
+    description:
+      "A quiet wireless keyboard with a compact layout for home or travel.",
     stock: 8,
     price: 69.99,
     rating: 0,
@@ -270,7 +282,8 @@ const demoProducts = [
     slug: "foldable-laptop-stand",
     category: "Electronics",
     brand: "Keyhaven",
-    description: "A lightweight foldable stand that raises a laptop to a comfortable height.",
+    description:
+      "A lightweight foldable stand that raises a laptop to a comfortable height.",
     stock: 22,
     price: 32.5,
     rating: 0,
@@ -284,7 +297,8 @@ const demoProducts = [
     slug: "insulated-stainless-water-bottle",
     category: "Accessories",
     brand: "Brightpath",
-    description: "A leak-resistant stainless steel bottle for commutes and day trips.",
+    description:
+      "A leak-resistant stainless steel bottle for commutes and day trips.",
     stock: 25,
     price: 29,
     rating: 0,
@@ -298,7 +312,8 @@ const demoProducts = [
     slug: "polarized-everyday-sunglasses",
     category: "Accessories",
     brand: "Daymark",
-    description: "Lightweight polarized sunglasses with a versatile everyday shape.",
+    description:
+      "Lightweight polarized sunglasses with a versatile everyday shape.",
     stock: 14,
     price: 52,
     rating: 0,
@@ -312,7 +327,8 @@ const demoProducts = [
     slug: "soft-cotton-bath-towel-set",
     category: "Home & Kitchen",
     brand: "Hearthside",
-    description: "A two-piece cotton towel set with a soft feel and quick-drying weave.",
+    description:
+      "A two-piece cotton towel set with a soft feel and quick-drying weave.",
     stock: 20,
     price: 39,
     rating: 0,
@@ -335,6 +351,247 @@ const demoProducts = [
     banner: null,
     images: ["/images/sample-products/p5-1.jpg"],
   },
-];
+]
 
-export default demoProducts;
+export const DEMO_CATEGORY_TARGETS = {
+  Clothing: 20,
+  Bags: 20,
+  Footwear: 20,
+  Accessories: 20,
+  "Home & Kitchen": 20,
+  "Home & Office": 20,
+  Electronics: 20,
+} as const
+
+const additionalProducts = {
+  Clothing: [
+    "Linen Camp Collar Shirt",
+    "Everyday Performance Polo",
+    "Merino Blend Cardigan",
+    "Brushed Flannel Overshirt",
+    "Slim Tapered Jeans",
+    "Utility Chore Jacket",
+    "Twill Work Shirt",
+    "Relaxed Jogger Pants",
+    "Lightweight Rain Shell",
+    "Cotton Poplin Blouse",
+    "Pleated Midi Skirt",
+    "Fleece Quarter-Zip",
+    "Stretch Denim Jacket",
+    "Thermal Henley Top",
+  ],
+  Bags: [
+    "Structured Work Tote",
+    "Weekend Duffle Bag",
+    "Rolltop Commuter Backpack",
+    "Mini Zip Shoulder Bag",
+    "Expandable Carry-On Duffel",
+    "Recycled Nylon Sling Pack",
+    "Leather Crossbody Satchel",
+    "Quilted Everyday Tote",
+    "Canvas Market Bag",
+    "Water Resistant Laptop Backpack",
+    "Compact Camera Bag",
+    "Foldover Travel Backpack",
+    "Packable Daypack",
+    "Woven Beach Tote",
+    "Organizer Tech Pouch",
+    "Kids School Backpack",
+    "Heritage Leather Weekender",
+  ],
+  Footwear: [
+    "Cushioned Running Shoes",
+    "Leather Court Sneakers",
+    "Suede Desert Boots",
+    "Waterproof Hiking Boots",
+    "Slip-On Canvas Loafers",
+    "Everyday Leather Flats",
+    "Knit Training Sneakers",
+    "Trail Grip Sandals",
+    "Classic Chelsea Boots",
+    "Lightweight Walking Trainers",
+    "Minimal Leather Slides",
+    "High-Top Canvas Sneakers",
+    "Cross-Training Shoes",
+    "Weatherproof Duck Boots",
+    "Strappy Everyday Sandals",
+    "Memory Foam House Slippers",
+    "Retro Court Shoes",
+    "Supportive Work Clogs",
+  ],
+  Accessories: [
+    "Slim Bifold Wallet",
+    "Polarized Sport Sunglasses",
+    "Stainless Analog Watch",
+    "Reversible Leather Belt",
+    "Soft Knit Scarf",
+    "Minimalist Gold Hoop Earrings",
+    "Travel Jewelry Case",
+    "Compact Folding Umbrella",
+    "Leather Key Organizer",
+    "Insulated Coffee Flask",
+    "Everyday Baseball Cap",
+    "Blue Light Glasses",
+    "Stainless Travel Cutlery Set",
+    "Woven Bracelet Set",
+    "Touchscreen Winter Gloves",
+    "Classic Silk Necktie",
+  ],
+  "Home & Kitchen": [
+    "Ceramic Pour-Over Coffee Set",
+    "Nonstick Frying Pan",
+    "Bamboo Cutting Board Set",
+    "Linen Table Runner",
+    "Glass Food Storage Set",
+    "Cotton Kitchen Towel Bundle",
+    "Electric Milk Frother",
+    "Stackable Stoneware Plates",
+    "Cast Iron Dutch Oven",
+    "Rechargeable Salt and Pepper Grinder",
+    "Double Walled Tea Glasses",
+    "Waffle Weave Bath Mat",
+    "Acacia Salad Bowl Set",
+    "Compact Air Fryer",
+    "Reusable Produce Bag Set",
+  ],
+  "Home & Office": [
+    "Adjustable Monitor Riser",
+    "Ergonomic Wireless Mouse",
+    "A5 Hardcover Planner",
+    "Mesh Desk Organizer",
+    "USB-C Desk Hub",
+    "Task Chair Lumbar Cushion",
+    "Magnetic Whiteboard Set",
+    "Portable Document Scanner",
+    "LED Monitor Light Bar",
+    "Cable Management Tray",
+    "Mechanical Keyboard Wrist Rest",
+    "Desktop Charging Station",
+    "Stackable File Organizer",
+    "Noise-Reducing Headset Stand",
+    "Adjustable Laptop Desk",
+    "Precision Pen Set",
+    "Compact Paper Shredder",
+    "Desk Footrest",
+  ],
+  Electronics: [
+    "Wireless Noise-Canceling Headphones",
+    "Bluetooth Portable Speaker",
+    "USB-C Fast Charger",
+    "4K Webcam",
+    "Portable SSD Drive",
+    "Smart LED Light Strip",
+    "Wireless Charging Pad",
+    "Dual-Screen Travel Monitor",
+    "Compact Action Camera",
+    "Wi-Fi 6 Router",
+    "Mechanical Gaming Keyboard",
+    "Precision Wireless Mouse",
+    "Bluetooth Earbuds",
+    "USB-C Power Bank",
+    "Smart Home Plug 2-Pack",
+    "HDMI Capture Adapter",
+    "2TB External Hard Drive",
+    "Adjustable Phone Tripod",
+  ],
+} satisfies Record<keyof typeof DEMO_CATEGORY_TARGETS, string[]>
+
+const categoryDetails = {
+  Clothing: {
+    brand: "Northline",
+    description:
+      "A versatile wardrobe essential made for comfortable everyday wear.",
+    startingPrice: 24,
+    priceStep: 4.65,
+  },
+  Bags: {
+    brand: "Fieldwork",
+    description:
+      "A practical carryall with thoughtfully organized storage for daily use.",
+    startingPrice: 28,
+    priceStep: 5.8,
+  },
+  Footwear: {
+    brand: "Stridewell",
+    description:
+      "Comfortable, durable footwear designed to keep up with busy days.",
+    startingPrice: 38,
+    priceStep: 6.25,
+  },
+  Accessories: {
+    brand: "Common Goods",
+    description:
+      "A useful finishing touch made with dependable materials and details.",
+    startingPrice: 14,
+    priceStep: 3.45,
+  },
+  "Home & Kitchen": {
+    brand: "Hearthside",
+    description:
+      "A thoughtfully designed home essential for everyday routines.",
+    startingPrice: 18,
+    priceStep: 4.9,
+  },
+  "Home & Office": {
+    brand: "Brightpath",
+    description:
+      "A practical workspace essential for a more comfortable, organized day.",
+    startingPrice: 16,
+    priceStep: 5.3,
+  },
+  Electronics: {
+    brand: "Keyhaven",
+    description:
+      "A reliable electronic accessory designed for home, work, or travel.",
+    startingPrice: 22,
+    priceStep: 17.5,
+  },
+} satisfies Record<
+  keyof typeof DEMO_CATEGORY_TARGETS,
+  {
+    brand: string
+    description: string
+    startingPrice: number
+    priceStep: number
+  }
+>
+
+const productImages = [
+  "/images/sample-products/p1-1.jpg",
+  "/images/sample-products/p1-2.jpg",
+  "/images/sample-products/p2-1.jpg",
+  "/images/sample-products/p3-1.jpg",
+  "/images/sample-products/p4-1.jpg",
+  "/images/sample-products/p5-1.jpg",
+]
+
+const supplementalDemoProducts = (
+  Object.keys(additionalProducts) as Array<keyof typeof additionalProducts>
+).flatMap((category) => {
+  const names = additionalProducts[category]
+  const details = categoryDetails[category]
+
+  return names.map((name, index) => ({
+    name,
+    slug: name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, ""),
+    category,
+    brand: details.brand,
+    description: details.description,
+    stock: 8 + ((index * 7) % 24),
+    price: Number(
+      (details.startingPrice + index * details.priceStep).toFixed(2),
+    ),
+    rating: 0,
+    numReviews: 0,
+    isFeatured: false,
+    banner: null,
+    images: [productImages[index % productImages.length]],
+  }))
+})
+
+const demoProducts = [...initialDemoProducts, ...supplementalDemoProducts]
+
+export default demoProducts

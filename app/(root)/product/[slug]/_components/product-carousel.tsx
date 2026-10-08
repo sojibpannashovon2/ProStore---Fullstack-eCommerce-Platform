@@ -35,20 +35,27 @@ export function ProductCarousel({ data }: ProductCarouselProps) {
       ]}
     >
       <CarouselContent>
-        {data.map((product: Product) => (
+        {data.map((product: Product, index) => (
           <CarouselItem key={product.id}>
-            <Link href={`/product/${product.slug}`}>
-              <div className="relative mx-auto">
+            <Link className="block" href={`/product/${product.slug}`}>
+              <div className="relative mx-auto h-[320px] w-full overflow-hidden bg-white sm:h-[420px] lg:h-[520px]">
                 <Image
-                  src={product.banner!}
+                  src={
+                    product.banner
+                      ? product.banner.startsWith("/") ||
+                        product.banner.startsWith("http")
+                        ? product.banner
+                        : `/images/${product.banner}`
+                      : (product.images[0] ?? "/images/banner-1.jpg")
+                  }
                   alt={product.name}
-                  height="0"
-                  width="0"
+                  fill
                   sizes="100vw"
-                  className="h-auto w-full"
+                  priority={index === 0}
+                  className="object-contain"
                 />
-                <div className="absolute inset-0 flex items-end justify-center">
-                  <h2 className="bg-opacity-50 bg-gray-900 px-2 text-2xl font-bold text-white">
+                <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/50 via-transparent to-transparent">
+                  <h2 className="mb-5 rounded bg-black/50 px-4 py-2 text-center text-xl font-bold text-white sm:text-2xl">
                     {product.name}
                   </h2>
                 </div>

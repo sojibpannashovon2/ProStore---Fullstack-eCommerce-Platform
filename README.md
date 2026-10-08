@@ -1,220 +1,189 @@
 # ProStore E-Commerce Platform
 
-ProStore is a full-stack eCommerce website built with **Next.js 15**,**React 19**, **Prisma**, **TailwindCSS v4**, **Stripe**, **PayPal**, and more. It allows users to browse products, manage their carts, and complete purchases with various payment methods. The platform includes an admin dashboard for managing products, orders, and users.
+**A full-stack storefront built to demonstrate the complete e-commerce journey: product discovery, customer accounts, checkout, payments, order management, and administration.**
 
-<img src="/public/images/screen.png" alt="Next.js Ecommerce" />
+[![Live store](https://img.shields.io/badge/Live%20store-Vercel-black?logo=vercel)](https://pro-store-fullstack-e-commerce-plat.vercel.app/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-149eca?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169e1?logo=postgresql)](https://www.postgresql.org/)
 
-## 🌟 Live Demo
+ProStore is a production-deployed e-commerce application with a searchable product catalog, persistent shopping carts, an order and payment flow, customer reviews, and a role-restricted admin dashboard. It brings the storefront and operational tools together in one application, with a PostgreSQL data model and server-side application logic.
 
-- [Main Store](https://pro-store-fullstack-e-commerce-plat.vercel.app/)
-- [Sample Product](https://pro-store-fullstack-e-commerce-plat.vercel.app/product/soft-knit-pullover)
-- [Product Search](https://pro-store-fullstack-e-commerce-plat.vercel.app/search)
-- [Checkout Flow](https://pro-store-fullstack-e-commerce-plat.vercel.app/cart) → [Shipping](https://pro-store-fullstack-e-commerce-plat.vercel.app/shipping-address) → [Payment](https://pro-store-fullstack-e-commerce-plat.vercel.app/payment-method) → [Place order](https://pro-store-fullstack-e-commerce-plat.vercel.app/place-order)
+> **Explore:** [Open the live store](https://pro-store-fullstack-e-commerce-plat.vercel.app/) · [Browse products](https://pro-store-fullstack-e-commerce-plat.vercel.app/search) · [View a product](https://pro-store-fullstack-e-commerce-plat.vercel.app/product/soft-knit-pullover)
 
-## 🚀 Features
+## Product preview
 
-### 🛍️ Customer Experience
+![ProStore storefront](./public/images/screen.png)
 
-| Feature                | Description                                                   |
-| ---------------------- | ------------------------------------------------------------- |
-| **Product Discovery**  | Search by name/category, filter by price/rating, sort options |
-| **Rich Product Pages** | Image galleries, reviews, availability status                 |
-| **Smart Cart**         | Guest cart → user cart on login, real-time price updates      |
-| **Checkout Flow**      | 3-step process: Shipping → Payment → Review                   |
-| **Order Tracking**     | View order status, payment confirmation, delivery updates     |
+## What you can do
 
-### 💻 Admin Dashboard
+### Shop and discover products
 
-| Feature                | Description                                      |
-| ---------------------- | ------------------------------------------------ |
-| **Analytics**          | Sales charts, revenue metrics, customer insights |
-| **Product Management** | CRUD operations for product catalog              |
-| **Order Processing**   | Update payment/delivery status, view all orders  |
-| **User Management**    | View users, modify roles, manage access          |
+- Browse and search a catalog with category, price, and rating filters, plus sorting and pagination.
+- View product details, availability, image galleries, and customer reviews.
+- See distinct, locally served product photography instead of repeated category placeholders. The demo catalog contains 20 products in each of seven categories; image credits are documented in [`public/images/product-images/IMAGE-CREDITS.md`](./public/images/product-images/IMAGE-CREDITS.md).
+- Add items to a shopping cart as a guest and keep shopping after signing in.
 
-### 💳 Payment Options
+### Complete the customer journey
 
-| Method               | Features                                        |
-| -------------------- | ----------------------------------------------- |
-| **PayPal**           | Secure checkout, automatic payment confirmation |
-| **Stripe**           | Credit card processing, PCI-compliant           |
-| **Cash on Delivery** | Admin-marked payment status                     |
+- Create an account, sign in, and manage a customer profile and shipping address.
+- Review the cart, enter shipping details, choose an available payment method, and submit an order.
+- View order details and status after checkout.
+- Submit or update a product review. Product-card ratings show the average from saved reviews and the review count; unrated products are labeled **No reviews**.
+- Receive purchase emails when the email provider is configured.
 
-### ✉️ Notifications
+### Run store operations
 
-- Email receipts with order details
-- Toast notifications for all user actions
+- Use the admin dashboard to view store activity and manage products, orders, and users.
+- Create, update, and delete products.
+- Update order payment and delivery status using the admin workflow.
+- Restrict order and administrative operations according to the signed-in user and role.
 
-## 🛠️ Tech Stack
+### Integrate payment providers
 
-### Frontend
+The checkout supports the payment methods configured for the deployment:
 
-- **Framework**: Next.js 15 (App Router) - React 19
-- **UI**: ShadCN components
-- **Styling**: TailwindCSS v4
-- **State**: React Server Components
-- **Forms**: React Hook Form + Zod + Uploadthing
+- **Stripe** for card payments.
+- **PayPal** for PayPal checkout.
+- **Cash on Delivery** for orders managed through the admin workflow.
 
-### Backend
+Provider credentials are supplied through environment variables; use provider sandbox credentials for local development.
 
-- **ORM**: Prisma
-- **Database**: PostgreSQL (NeonDB)
-- **Auth**: NextAuth.js
-- **Payments**: Stripe & PayPal & Cash on Delivery
-- **Emails**: Resend + React Email
+## Engineering highlights
 
-## 🚀 Getting Started
+- **End-to-end feature ownership:** the project connects catalog data, shopping-cart behavior, checkout, payment handling, saved orders, customer reviews, and store administration.
+- **Typed data and validation:** Prisma models define the PostgreSQL domain, while Zod schemas validate data submitted through application actions.
+- **Server-rendered application:** Next.js App Router pages and server actions keep data access and business operations close to the server-side application.
+- **Role-aware workflows:** customer order access and admin capabilities are separated by authenticated user roles.
+- **Cache-aware updates:** product, review, and order mutations invalidate relevant cached data so updated store content can be refreshed.
+- **Repeatable catalog setup:** `npm run db:seed-products` adds missing demo products without deleting the rest of the database, synchronizes demo product prices and images, and verifies category counts and image uniqueness.
+- **Thoughtful motion and image handling:** product-card and text animations respect reduced-motion preferences, and catalog images are served as local assets.
+
+## Architecture and technology
+
+| Area | Tools |
+| --- | --- |
+| Web application | Next.js 15 App Router, React 19, TypeScript |
+| UI and styling | Tailwind CSS v4, Radix UI, shadcn-style components |
+| Forms and validation | React Hook Form, Zod |
+| Persistence | PostgreSQL, Prisma ORM |
+| Authentication | Auth.js / NextAuth with the Prisma adapter |
+| Payments | Stripe, PayPal, Cash on Delivery |
+| Product image uploads | UploadThing |
+| Email | Resend and React Email |
+| Charts | Recharts |
+| Deployment | Vercel |
+
+### Request and data flow
+
+1. App Router pages render the storefront and admin experiences.
+2. Server actions validate submitted data and perform application operations.
+3. Prisma reads and writes the PostgreSQL database.
+4. Payment, image-upload, and email integrations connect through their configured providers.
+5. Cache revalidation keeps product, review, and order views current after changes.
+
+## Run locally
 
 ### Prerequisites
 
-- **Node.js** (v18 or later)
-- **NeonDB Account** (Postgresql)
-- **Stripe & PayPal Developer Accounts** for payment integrations
-- **Resend Developer Account** for email notifications
+- Node.js 20 or later and npm.
+- A PostgreSQL database.
+- Provider accounts and credentials only for the integrations you intend to test (for example, Stripe, PayPal, UploadThing, or Resend).
 
-### Installation
+### 1. Get the code and install dependencies
 
-Follow these steps to get the application up and running locally:
+```bash
+git clone https://github.com/sojibpannashovon2/ProStore---Fullstack-eCommerce-Platform.git
+cd ProStore---Fullstack-eCommerce-Platform
+npm install
+```
 
-1. **Clone the Repository**
+### 2. Configure environment variables
 
-   Clone the repository to your local machine:
+Copy the example configuration and add local values:
 
-   ```bash
-   git clone https://github.com/sojibpannashovon2/prostore-ecommerce-platform.git
-   cd prostore
-   ```
+```bash
+cp .env.example .env
+```
 
-2. **Install Dependencies**
+At minimum, configure a PostgreSQL `DATABASE_URL`, an `AUTH_SECRET`, an `ENCRYPTION_KEY`, and the local `NEXT_PUBLIC_SERVER_URL`. Set `AUTH_TRUST_HOST=true` when running locally. Add the Stripe, PayPal, UploadThing, and Resend credentials for any integrations you want to exercise.
 
-   Install the required dependencies using npm or yarn:
+Keep `.env` out of version control. Never put server-side provider secrets in `NEXT_PUBLIC_*` variables or commit real credentials.
 
-   ```bash
-   npm install
-   or
-   yarn install
-   ```
+### 3. Generate Prisma Client and apply migrations
 
-3. **Set Up Environment Variables**
+```bash
+npx prisma generate
+npx prisma migrate deploy
+```
 
-   Copy the .env.example file to .env and fill in your environment variables as described below:
+### 4. Add the demo catalog (optional)
 
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+npm run db:seed-products
+```
 
-   Update the .env file with the necessary values. This file contains crucial information such as your database connection URL, Stripe/PayPal credentials, and other keys. You will need to create accounts for services like Stripe, PayPal, and Resend to obtain these credentials. For more details about the environment variables, please see the [Explanation of Environment Variables](#explanation-of-environment-variables) section.
-   <br>
+This is the additive demo-product seeder. It does not clear the database. Avoid running destructive database scripts against production data.
 
-4. **Run Database Migrations**
+### 5. Start the development server
 
-   Run Prisma migrations to set up the database schema:
+```bash
+npm run dev
+```
 
-   ```bash
-   npm run db:generate
-   ```
+Open [http://localhost:3000](http://localhost:3000).
 
-   and then migrate
+### 6. Check a production build
 
-   ```bash
-   npx prisma migrate dev
-   ```
+```bash
+npm run build
+npm run start
+```
 
-   If you'd like to seed the database with sample data (optional), run:
+## Environment configuration
 
-   ```bash
-   npx tsx ./db/seed.ts
-   ```
+Use [`.env.example`](./.env.example) as the source of truth for variable names. Configuration includes:
 
-5. **Start the Development Server**
+| Purpose | Variables |
+| --- | --- |
+| App metadata and base URL | `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_APP_DESCRIPTION`, `NEXT_PUBLIC_SERVER_URL` |
+| Database | `DATABASE_URL` |
+| Authentication and encryption | `AUTH_SECRET`, `AUTH_TRUST_HOST`, `ENCRYPTION_KEY` |
+| Payment methods | `PAYMENT_METHODS`, `DEFAULT_PAYMENT_METHOD` |
+| PayPal | `PAYPAL_API_URL`, `PAYPAL_CLIENT_ID`, `PAYPAL_APP_SECRET` |
+| Stripe | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
+| Image uploads | `UPLOADTHING_TOKEN`, `UPLOADTHING_SECRET`, `UPLOADTHING_APPID` |
+| Email | `RESEND_API_KEY`, `SENDER_EMAIL` |
 
-   For local development, run the following:
+Only configure real provider credentials in the appropriate local or deployment environment. Use test or sandbox credentials for development.
 
-   ```bash
-   npm run dev
-   ```
+## Useful commands
 
-   Your app will be available at http://localhost:3000
-   <br>
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the local development server. |
+| `npm run build` | Create and type-check a production build. |
+| `npm run start` | Serve the production build locally. |
+| `npm run lint` | Run the configured lint command. |
+| `npx prisma generate` | Generate Prisma Client from the schema. |
+| `npx prisma migrate deploy` | Apply checked-in migrations to the configured database. |
+| `npm run db:seed-products` | Add and verify the demo catalog. |
+| `npm run db:studio` | Open Prisma Studio for the configured database. |
 
-6. **Build and Deploy for Production**
+## Project layout
 
-   To build the app for production:
-
-   ```bash
-   npm run build
-   ```
-
-   After building, you can start the app in production mode:
-
-   ```bash
-   npm run start
-   ```
-
-   This will serve the app optimized for production.
-
-## Explanation of Environment Variables
-
-Here’s a brief explanation of each environment variable in your `.env` file:
-
-### General Configuration
-
-- `NEXT_PUBLIC_APP_NAME`: Name of your app (public-facing).
-- `NEXT_PUBLIC_APP_DESCRIPTION`: Description of your app (public-facing).
-- `NEXT_PUBLIC_SERVER_URL`: URL of your server (base URL for API requests).
-
-### Authentication & Security
-
-- `AUTH_SECRET`: A secret used for signing and verifying tokens.
-- `AUTH_TRUST_HOST`: Used to trust the host (usually set to true or a specific domain).
-- `ENCRYPTION_KEY`: Key used for encrypting sensitive data.
-
-### Database Configuration
-
-- `DATABASE_URL`: The connection string to your database (e.g., PostgreSQL, MySQL, etc.).
-
-### Payment Configuration
-
-- `PAYMENT_METHODS`: List of accepted payment methods (e.g., PayPal, Stripe).
-- `DEFAULT_PAYMENT_METHOD`: The default payment method to be used in the app.
-
-### PayPal Integration
-
-- `PAYPAL_API_URL`: The PayPal API URL to communicate with.
-- `PAYPAL_CLIENT_ID`: Your PayPal client ID for OAuth integration.
-- `PAYPAL_APP_SECRET`: The secret associated with your PayPal app for authentication.
-
-### Stripe Integration
-
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: The publishable Stripe key, exposed on the client side.
-- `STRIPE_SECRET_KEY`: The secret Stripe key, used for server-side authentication.
-
-### File Upload
-
-- `UPLOADTHING_TOKEN`: Token used for authentication with your file upload service.
-- `UPLOADTHING_SECRET`: Secret key for file uploads.
-- `UPLOADTHING_APPID`: The app ID for UploadThing.
-
-### Email Service
-
-- `RESEND_API_KEY`: API key for sending emails using Resend.
-- `SENDER_EMAIL`: The email address used to send notifications and receipts.
-
-### Other Configuration
-
-- `NEXT_PUBLIC_TARGET_DATE`: A public-facing target date (likely for countdown timers or promotions).
+```text
+app/          Storefront, checkout, account, admin, and API routes
+components/   Shared UI and reusable components
+db/           Prisma client and demo catalog seeding
+lib/actions/  Server-side product, cart, order, review, and account operations
+lib/          Authentication, integrations, validation, and utilities
+prisma/       Database schema and migrations
+public/       Storefront assets and distinct catalog product photos
+types/        Shared TypeScript types
+```
 
 ## License
 
-MIT License
-
-Copyright (c) [2026] [Md Arifur Rahman]
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall
+MIT. See [LICENSE](./LICENSE) for details.

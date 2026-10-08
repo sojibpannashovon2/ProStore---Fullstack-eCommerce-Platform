@@ -11,6 +11,7 @@
     "db:generate": "npx prisma generate",
     "db:studio": "npx prisma studio",
     "db:seed": "npx tsx ./db/seed seed",
+    "db:seed-products": "npx tsx ./db/seed-products.ts",
     "db:truncate": "npx tsx ./db/seed truncate",
     "postinstall": "prisma generate",
     "email": "xcopy .env node_modules\\react-email\\ /Y && email dev --dir email --port 3001"

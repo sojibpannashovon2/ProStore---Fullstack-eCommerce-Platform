@@ -158,6 +158,13 @@ export const getAllProducts = unstable_cache(
   { revalidate: 60 * 60, tags: ["getAllProducts"] }, // Cache expires every 60 seconds
 )
 
+function revalidateProductCaches() {
+  revalidateTag("getLatestProducts")
+  revalidateTag("getAllProducts")
+  revalidatePath("/")
+  revalidatePath("/search")
+}
+
 // Get all categories with product counts
 export async function getAllCategories(): Promise<
   Array<{ category: string; _count: { category: number } }>
@@ -185,6 +192,7 @@ export async function deleteProduct(id: string) {
     await prisma.product.delete({ where: { id } })
 
     revalidatePath("/admin/products")
+    revalidateProductCaches()
 
     return {
       success: true,
@@ -202,6 +210,7 @@ export async function createProduct(data: InsertProduct): ActionReturn {
     await prisma.product.create({ data: product })
 
     revalidatePath("/admin/products")
+    revalidateProductCaches()
 
     return {
       success: true,
@@ -216,7 +225,7 @@ export async function createProduct(data: InsertProduct): ActionReturn {
 export async function updateProduct(data: UpdateProduct): ActionReturn {
   try {
     const product = updateProductSchema.parse(data)
-    const productExists = getProductById(product.id)
+    const productExists = await getProductById(product.id)
 
     if (!productExists) throw new Error("Product not found")
 
@@ -226,7 +235,7 @@ export async function updateProduct(data: UpdateProduct): ActionReturn {
     })
 
     revalidatePath("/admin/products")
-    revalidateTag("getLatestProducts")
+    revalidateProductCaches()
 
     return {
       success: true,

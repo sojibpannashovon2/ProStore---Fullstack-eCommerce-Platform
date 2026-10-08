@@ -34,7 +34,14 @@ export function ProductCard({ product }: ProductCardProps) {
           </h2>
         </Link>
         <div className="flex-between gap-4">
-          <Rating value={Number(product.rating)} />
+          <Rating
+            value={Number(product.rating)}
+            caption={
+              product.numReviews > 0
+                ? `${Number(product.rating).toFixed(1)} (${product.numReviews})`
+                : "No reviews"
+            }
+          />
           {product.stock > 0 ? (
             <ProductPrice value={Number(product.price)} />
           ) : (

@@ -364,14 +364,42 @@ export const DEMO_CATEGORY_TARGETS = {
 } as const
 
 export const CATEGORY_PRODUCT_IMAGES = {
-  Clothing: "/images/category-products/clothing.jpg",
-  Bags: "/images/category-products/bags.jpg",
-  Footwear: "/images/category-products/footwear.jpg",
-  Accessories: "/images/category-products/accessories.jpg",
-  "Home & Kitchen": "/images/category-products/home-kitchen.jpg",
-  "Home & Office": "/images/category-products/home-office.jpg",
-  Electronics: "/images/category-products/electronics.jpg",
-} satisfies Record<keyof typeof DEMO_CATEGORY_TARGETS, string>
+  Clothing: Array.from(
+    { length: DEMO_CATEGORY_TARGETS.Clothing },
+    (_, index) =>
+      `/images/product-images/clothing-${String(index + 1).padStart(2, "0")}.jpg`,
+  ),
+  Bags: Array.from(
+    { length: DEMO_CATEGORY_TARGETS.Bags },
+    (_, index) =>
+      `/images/product-images/bags-${String(index + 1).padStart(2, "0")}.jpg`,
+  ),
+  Footwear: Array.from(
+    { length: DEMO_CATEGORY_TARGETS.Footwear },
+    (_, index) =>
+      `/images/product-images/footwear-${String(index + 1).padStart(2, "0")}.jpg`,
+  ),
+  Accessories: Array.from(
+    { length: DEMO_CATEGORY_TARGETS.Accessories },
+    (_, index) =>
+      `/images/product-images/accessories-${String(index + 1).padStart(2, "0")}.jpg`,
+  ),
+  "Home & Kitchen": Array.from(
+    { length: DEMO_CATEGORY_TARGETS["Home & Kitchen"] },
+    (_, index) =>
+      `/images/product-images/home-kitchen-${String(index + 1).padStart(2, "0")}.jpg`,
+  ),
+  "Home & Office": Array.from(
+    { length: DEMO_CATEGORY_TARGETS["Home & Office"] },
+    (_, index) =>
+      `/images/product-images/home-office-${String(index + 1).padStart(2, "0")}.jpg`,
+  ),
+  Electronics: Array.from(
+    { length: DEMO_CATEGORY_TARGETS.Electronics },
+    (_, index) =>
+      `/images/product-images/electronics-${String(index + 1).padStart(2, "0")}.jpg`,
+  ),
+} satisfies Record<keyof typeof DEMO_CATEGORY_TARGETS, string[]>
 
 const additionalProducts = {
   Clothing: [
@@ -602,15 +630,24 @@ const supplementalDemoProducts = (
   }))
 })
 
+const imageIndexesByCategory = new Map<
+  keyof typeof CATEGORY_PRODUCT_IMAGES,
+  number
+>()
 const demoProducts = [...initialDemoProducts, ...supplementalDemoProducts].map(
-  (product) => ({
-    ...product,
-    images: [
-      CATEGORY_PRODUCT_IMAGES[
-        product.category as keyof typeof CATEGORY_PRODUCT_IMAGES
-      ],
-    ],
-  }),
+  (product) => {
+    const category = product.category as keyof typeof CATEGORY_PRODUCT_IMAGES
+    const imageIndex = imageIndexesByCategory.get(category) ?? 0
+    const image = CATEGORY_PRODUCT_IMAGES[category][imageIndex]
+
+    if (!image) {
+      throw new Error(`No unique product image configured for ${category}.`)
+    }
+
+    imageIndexesByCategory.set(category, imageIndex + 1)
+
+    return { ...product, images: [image] }
+  },
 )
 
 export default demoProducts

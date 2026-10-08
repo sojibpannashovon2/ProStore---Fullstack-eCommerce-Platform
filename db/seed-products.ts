@@ -1,9 +1,6 @@
 import { PrismaClient } from "@prisma/client"
 
-import demoProducts, {
-  CATEGORY_PRODUCT_IMAGES,
-  DEMO_CATEGORY_TARGETS,
-} from "./demo-products"
+import demoProducts, { DEMO_CATEGORY_TARGETS } from "./demo-products"
 
 async function main() {
   const prisma = new PrismaClient()
@@ -48,23 +45,15 @@ async function main() {
     })
 
     await prisma.$transaction(
-      [
-        ...demoProducts.map((product) =>
-          prisma.product.updateMany({
-            where: { slug: product.slug },
-            data: {
-              images: product.images,
-              price: product.price,
-            },
-          }),
-        ),
-        ...Object.entries(CATEGORY_PRODUCT_IMAGES).map(([category, image]) =>
-          prisma.product.updateMany({
-            where: { category },
-            data: { images: [image] },
-          }),
-        ),
-      ],
+      demoProducts.map((product) =>
+        prisma.product.updateMany({
+          where: { slug: product.slug },
+          data: {
+            images: product.images,
+            price: product.price,
+          },
+        }),
+      ),
     )
 
     const finalCounts = await prisma.product.groupBy({
@@ -91,31 +80,51 @@ async function main() {
     }
 
     const productsWithIncorrectImages = await prisma.product.findMany({
-      where: { category: { in: Object.keys(CATEGORY_PRODUCT_IMAGES) } },
-      select: { category: true, images: true },
+      where: { category: { in: Object.keys(DEMO_CATEGORY_TARGETS) } },
+      select: { slug: true, category: true, images: true },
     })
-    const incorrectImageCategories = new Set(
-      productsWithIncorrectImages
-        .filter(
-          ({ category, images }) =>
-            images[0] !==
-            CATEGORY_PRODUCT_IMAGES[
-              category as keyof typeof CATEGORY_PRODUCT_IMAGES
-            ],
-        )
-        .map(({ category }) => category),
+    const demoImagesBySlug = new Map(
+      demoProducts.map(({ slug, images }) => [slug, images[0]]),
     )
+    const imagePathsByCategory = new Map<string, Set<string>>()
+    const incorrectImageCategories = new Set<string>()
+
+    for (const { slug, category, images } of productsWithIncorrectImages) {
+      const image = images[0]
+      const expectedImage = demoImagesBySlug.get(slug)
+      const categoryImages = imagePathsByCategory.get(category) ?? new Set()
+
+      if (!image || (expectedImage && image !== expectedImage)) {
+        incorrectImageCategories.add(category)
+      }
+      if (image && categoryImages.has(image)) {
+        incorrectImageCategories.add(category)
+      }
+
+      if (image) categoryImages.add(image)
+      imagePathsByCategory.set(category, categoryImages)
+    }
+
+    const missingDemoProducts = demoProducts.filter(
+      ({ slug }) =>
+        !productsWithIncorrectImages.some((product) => product.slug === slug),
+    )
+    if (missingDemoProducts.length > 0) {
+      throw new Error(
+        `Missing seeded demo products: ${missingDemoProducts.map(({ slug }) => slug).join(", ")}.`,
+      )
+    }
 
     if (incorrectImageCategories.size > 0) {
       throw new Error(
-        `Incorrect product images remain in: ${[...incorrectImageCategories].join(", ")}.`,
+        `Product images must be present, unique per category, and match the demo catalog in: ${[...incorrectImageCategories].join(", ")}.`,
       )
     }
 
     console.log(`Added ${result.count} demo products.`)
     for (const [category, target] of Object.entries(DEMO_CATEGORY_TARGETS)) {
       console.log(
-        `${category}: ${finalCountsByCategory.get(category) ?? 0}/${target}, image verified`,
+        `${category}: ${finalCountsByCategory.get(category) ?? 0}/${target}, unique images verified`,
       )
     }
   } finally {

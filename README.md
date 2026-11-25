@@ -178,6 +178,11 @@ Follow these steps to get the application up and running locally:
    npm run build
    ```
 
+   On Vercel Production builds, pending Prisma migrations are applied before
+   the Next.js build. The migration preflight stops if existing user roles
+   could be downgraded; review and back up the production database before
+   deploying schema changes.
+
    After building, you can start the app in production mode:
 
    ```bash

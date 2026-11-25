@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { requireAdmin } from "@/lib/auth-guard"
 
 import { ProductForm } from "../_components/product-form"
+import { isS3StorageConfigured } from "@/lib/storage/s3"
 import { TranslatedText } from "@/components/shared/translated-text"
 
 export const metadata: Metadata = {
@@ -17,7 +18,7 @@ export default async function CreateProductPage() {
       <div className="my-8">
         <ProductForm
           type="Create"
-          imageUploadsEnabled={Boolean(process.env.UPLOADTHING_TOKEN?.trim())}
+          imageUploadsEnabled={isS3StorageConfigured()}
         />
       </div>
     </>

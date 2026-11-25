@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { ProductForm } from "@/app/admin/products/_components/product-form"
+import { isS3StorageConfigured } from "@/lib/storage/s3"
 import { TranslatedText } from "@/components/shared/translated-text"
 
 export const metadata: Metadata = {
@@ -17,7 +18,7 @@ export default function CreateSellerProductPage() {
         <ProductForm
           type="Create"
           returnTo="/seller/products"
-          imageUploadsEnabled={Boolean(process.env.UPLOADTHING_TOKEN?.trim())}
+          imageUploadsEnabled={isS3StorageConfigured()}
         />
       </div>
     </>

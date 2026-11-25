@@ -5,6 +5,7 @@ import { getProductById } from "@/lib/actions/product.actions"
 import { requireAdmin } from "@/lib/auth-guard"
 
 import { ProductForm } from "../_components/product-form"
+import { isS3StorageConfigured } from "@/lib/storage/s3"
 import { TranslatedText } from "@/components/shared/translated-text"
 
 export const metadata: Metadata = {
@@ -35,7 +36,7 @@ export default async function AdminProductUpdatePage(
         type="Update"
         product={product}
         productId={product.id}
-        imageUploadsEnabled={Boolean(process.env.UPLOADTHING_TOKEN?.trim())}
+        imageUploadsEnabled={isS3StorageConfigured()}
       />
     </>
   )

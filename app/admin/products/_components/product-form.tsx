@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useState, useTransition } from "react"
+import { type ChangeEvent, useState, useTransition } from "react"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import axios from "axios"
@@ -14,7 +14,6 @@ import { toast } from "sonner"
 import type { InsertProduct, Product, UpdateProduct } from "@/types"
 
 import { createProduct, updateProduct } from "@/lib/actions/product.actions"
-import { UploadButton } from "@/lib/uploadthing"
 import { insertProductSchema, updateProductSchema } from "@/lib/validators"
 
 import { productDefaultValues } from "@/constants"
@@ -53,8 +52,25 @@ function isUploadThingImage(image: string) {
   }
 }
 
+function isNeonStorageImage(image: string) {
+  try {
+    const url = new URL(image)
+    return (
+      url.protocol === "https:" &&
+      url.hostname.includes(".storage.") &&
+      url.hostname.endsWith(".aws.neon.tech")
+    )
+  } catch {
+    return false
+  }
+}
+
 function isSupportedImageReference(image: string) {
-  return image.startsWith("/images/") || isUploadThingImage(image)
+  return (
+    image.startsWith("/images/") ||
+    isUploadThingImage(image) ||
+    isNeonStorageImage(image)
+  )
 }
 
 export function ProductForm({
@@ -67,6 +83,7 @@ export function ProductForm({
   const router = useRouter()
   const { locale } = useLocale()
   const [isPending, startTransition] = useTransition()
+  const [isUploading, setIsUploading] = useState(false)
   const [imageUrl, setImageUrl] = useState("")
   const [bannerUrl, setBannerUrl] = useState("")
 
@@ -141,6 +158,42 @@ export function ProductForm({
       shouldValidate: true,
     })
     setBannerUrl("")
+  }
+
+  const handleImageUpload = async (
+    event: ChangeEvent<HTMLInputElement>,
+    onUploaded: (url: string) => void,
+  ) => {
+    const input = event.currentTarget
+    const file = input.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    try {
+      const { data } = await axios.post<{
+        uploadUrl: string
+        imageUrl: string
+      }>("/api/storage/upload", {
+        contentType: file.type,
+        fileSize: file.size,
+      })
+
+      await axios.put(data.uploadUrl, file, {
+        headers: { "Content-Type": file.type },
+      })
+      onUploaded(data.imageUrl)
+      toast.success(translate(locale, "Image uploaded successfully"))
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error || error.message
+        : error instanceof Error
+          ? error.message
+          : translate(locale, "Failed to upload image")
+      toast.error(message)
+    } finally {
+      setIsUploading(false)
+      input.value = ""
+    }
   }
 
   return (
@@ -271,17 +324,14 @@ export function ProductForm({
                         >
                           <Button
                             type="button"
-                            disabled={isPending}
+                            disabled={isPending || isUploading}
                             variant="destructive"
                             className="absolute top-0 left-0 size-7 cursor-pointer"
                             onClick={() => {
                               startTransition(async () => {
                                 try {
-                                  if (
-                                    imageUploadsEnabled &&
-                                    isUploadThingImage(image)
-                                  ) {
-                                    await axios.delete("/api/uploadthing", {
+                                  if (isNeonStorageImage(image)) {
+                                    await axios.delete("/api/storage/upload", {
                                       data: { url: image },
                                     })
                                   }
@@ -292,7 +342,7 @@ export function ProductForm({
                                   )
                                   toast.success(translate(locale, "Image removed successfully"))
                                 } catch (error) {
-                                  console.log(error)
+                                  console.error(error)
                                   toast.error(translate(locale, "Failed to remove image"))
                                 }
                               })
@@ -310,20 +360,19 @@ export function ProductForm({
                       ))}
                       {imageUploadsEnabled && (
                         <FormControl>
-                          <UploadButton
-                            endpoint="imageUploader"
-                            onClientUploadComplete={(res: { url: string }[]) => {
-                              const uploadedImage = res[0]?.url
-                              if (uploadedImage) {
+                          <Input
+                            type="file"
+                            accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
+                            disabled={isUploading}
+                            aria-label={translate(locale, "Upload product image")}
+                            onChange={(event) =>
+                              void handleImageUpload(event, (uploadedImage) =>
                                 form.setValue("images", [
                                   ...form.getValues("images"),
                                   uploadedImage,
-                                ])
-                              }
-                            }}
-                            onUploadError={(error: Error) => {
-                              toast.error(`ERROR! ${error.message}`)
-                            }}
+                                ]),
+                              )
+                            }
                           />
                         </FormControl>
                       )}
@@ -343,11 +392,11 @@ export function ProductForm({
                       </Button>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      <TranslatedText text="Use a public HTTPS image from utfs.io or a path under /images/." />
+                      <TranslatedText text="Use a public HTTPS image from Neon Storage or utfs.io, or a path under /images/." />
                     </p>
                     {!imageUploadsEnabled && (
                       <p className="text-sm text-muted-foreground">
-                        <TranslatedText text="Direct uploads are disabled. Configure UPLOADTHING_TOKEN to upload files." />
+                        <TranslatedText text="Direct uploads are disabled. Configure Neon S3 storage to upload files." />
                       </p>
                     )}
                   </CardContent>
@@ -382,17 +431,14 @@ export function ProductForm({
                 <div className="relative w-full rounded-sm">
                   <Button
                     type="button"
-                    disabled={isPending}
+                    disabled={isPending || isUploading}
                     variant="destructive"
                     className="absolute top-0 left-0 size-7 cursor-pointer"
                     onClick={() => {
                       startTransition(async () => {
                         try {
-                          if (
-                            imageUploadsEnabled &&
-                            isUploadThingImage(banner)
-                          ) {
-                            await axios.delete("/api/uploadthing", {
+                          if (isNeonStorageImage(banner)) {
+                            await axios.delete("/api/storage/upload", {
                               data: { url: banner },
                             })
                           }
@@ -400,7 +446,7 @@ export function ProductForm({
                           form.setValue("banner", "")
                           toast.success(translate(locale, "Image removed successfully"))
                         } catch (error) {
-                          console.log(error)
+                          console.error(error)
                           toast.error(translate(locale, "Failed to remove image"))
                         }
                       })
@@ -421,17 +467,16 @@ export function ProductForm({
               {isFeatured && !banner && (
                 <div className="space-y-2">
                   {imageUploadsEnabled && (
-                    <UploadButton
-                      endpoint="imageUploader"
-                      onClientUploadComplete={(res: { url: string }[]) => {
-                        const uploadedBanner = res[0]?.url
-                        if (uploadedBanner) {
-                          form.setValue("banner", uploadedBanner)
-                        }
-                      }}
-                      onUploadError={(error: Error) => {
-                        toast.error(`ERROR! ${error.message}`)
-                      }}
+                    <Input
+                      type="file"
+                      accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
+                      disabled={isUploading}
+                      aria-label={translate(locale, "Upload banner image")}
+                      onChange={(event) =>
+                        void handleImageUpload(event, (uploadedBanner) =>
+                          form.setValue("banner", uploadedBanner),
+                        )
+                      }
                     />
                   )}
                   <div className="flex w-full gap-2">
@@ -477,7 +522,7 @@ export function ProductForm({
           <Button
             type="submit"
             size="lg"
-            disabled={form.formState.isSubmitting}
+            disabled={form.formState.isSubmitting || isUploading}
             className="button col-span-2 w-full"
           >
             {form.formState.isSubmitting

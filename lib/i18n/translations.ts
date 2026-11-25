@@ -217,10 +217,14 @@ const interfaceTranslations: Record<string, string> = {
   "Add banner": "ব্যানার যোগ করুন",
   "Enter a valid image URL or /images/ path.":
     "সঠিক ছবির URL অথবা /images/ পাথ লিখুন।",
-  "Use a public HTTPS image from utfs.io or a path under /images/.":
-    "utfs.io-এর পাবলিক HTTPS ছবি অথবা /images/ এর ভেতরের পাথ ব্যবহার করুন।",
-  "Direct uploads are disabled. Configure UPLOADTHING_TOKEN to upload files.":
-    "সরাসরি ফাইল আপলোড বন্ধ আছে। ফাইল আপলোডের জন্য UPLOADTHING_TOKEN কনফিগার করুন।",
+  "Use a public HTTPS image from Neon Storage or utfs.io, or a path under /images/.":
+    "Neon Storage বা utfs.io থেকে একটি সর্বজনীন HTTPS ছবি অথবা /images/ এর অধীনে একটি পাথ ব্যবহার করুন।",
+  "Direct uploads are disabled. Configure Neon S3 storage to upload files.":
+    "সরাসরি ফাইল আপলোড বন্ধ আছে। ফাইল আপলোডের জন্য Neon S3 Storage কনফিগার করুন।",
+  "Image uploaded successfully": "ছবি সফলভাবে আপলোড হয়েছে",
+  "Failed to upload image": "ছবি আপলোড করা যায়নি",
+  "Upload product image": "পণ্যের ছবি আপলোড করুন",
+  "Upload banner image": "ব্যানারের ছবি আপলোড করুন",
   Generate: "তৈরি করুন",
   "Image removed successfully": "ছবিটি সরানো হয়েছে",
   "Failed to remove image": "ছবিটি সরানো যায়নি",

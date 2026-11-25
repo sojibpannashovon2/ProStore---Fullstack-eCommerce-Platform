@@ -15,7 +15,10 @@ export default async function CreateProductPage() {
     <>
       <h2 className="h2-bold"><TranslatedText text="Create Product" /></h2>
       <div className="my-8">
-        <ProductForm type="Create" />
+        <ProductForm
+          type="Create"
+          imageUploadsEnabled={Boolean(process.env.UPLOADTHING_TOKEN?.trim())}
+        />
       </div>
     </>
   )

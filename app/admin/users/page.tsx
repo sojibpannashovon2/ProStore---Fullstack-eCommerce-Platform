@@ -25,15 +25,15 @@ export const metadata: Metadata = {
 
 interface AdminUsersPageProps {
   searchParams: Promise<{
-    page: string
-    query: string
+    page?: string
+    query?: string
   }>
 }
 
 export default async function AdminUsersPage(props: AdminUsersPageProps) {
   await requireAdmin()
 
-  const { page = "1", query: searchText } = await props.searchParams
+  const { page = "1", query: searchText = "" } = await props.searchParams
 
   const users = await getAllUsers({ page: Number(page), query: searchText })
 

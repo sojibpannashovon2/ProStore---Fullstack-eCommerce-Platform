@@ -211,6 +211,16 @@ const interfaceTranslations: Record<string, string> = {
   Brand: "ব্র্যান্ড",
   Stock: "স্টক",
   Images: "ছবি",
+  "Image URL": "ছবির URL",
+  "Image URL or /images/ path": "ছবির URL অথবা /images/ পাথ",
+  "Add image": "ছবি যোগ করুন",
+  "Add banner": "ব্যানার যোগ করুন",
+  "Enter a valid image URL or /images/ path.":
+    "সঠিক ছবির URL অথবা /images/ পাথ লিখুন।",
+  "Use a public HTTPS image from utfs.io or a path under /images/.":
+    "utfs.io-এর পাবলিক HTTPS ছবি অথবা /images/ এর ভেতরের পাথ ব্যবহার করুন।",
+  "Direct uploads are disabled. Configure UPLOADTHING_TOKEN to upload files.":
+    "সরাসরি ফাইল আপলোড বন্ধ আছে। ফাইল আপলোডের জন্য UPLOADTHING_TOKEN কনফিগার করুন।",
   Generate: "তৈরি করুন",
   "Image removed successfully": "ছবিটি সরানো হয়েছে",
   "Failed to remove image": "ছবিটি সরানো যায়নি",

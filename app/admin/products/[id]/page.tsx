@@ -31,7 +31,12 @@ export default async function AdminProductUpdatePage(
   return (
     <>
       <h1 className="h2-bold"><TranslatedText text="Update Product" /></h1>
-      <ProductForm type="Update" product={product} productId={product.id} />
+      <ProductForm
+        type="Update"
+        product={product}
+        productId={product.id}
+        imageUploadsEnabled={Boolean(process.env.UPLOADTHING_TOKEN?.trim())}
+      />
     </>
   )
 }

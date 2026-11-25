@@ -183,7 +183,7 @@ const getAllUsersCached = unstable_cache(
 export async function getAllUsers(params: {
   limit?: number
   page: number
-  query: string
+  query?: string
 }) {
   await assertPermission("users.view")
   const safePage = Number.isFinite(params.page)
@@ -195,7 +195,7 @@ export async function getAllUsers(params: {
       : Number.isFinite(params.limit)
         ? Math.min(100, Math.max(1, Math.trunc(params.limit)))
         : PAGE_SIZE
-  const query = z.string().max(120).parse(params.query)
+  const query = z.string().max(120).parse(params.query ?? "")
   return getAllUsersCached({ ...params, limit: safeLimit, page: safePage, query })
 }
 

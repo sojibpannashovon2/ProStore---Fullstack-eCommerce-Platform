@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useTransition } from "react"
+import { useState, useTransition } from "react"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import axios from "axios"
@@ -38,13 +38,28 @@ import { useLocale } from "@/providers/locale-provider"
 
 interface ProductFormProps {
   type: "Create" | "Update"
+  imageUploadsEnabled: boolean
   product?: Product
   productId?: string
   returnTo?: string
 }
 
+function isUploadThingImage(image: string) {
+  try {
+    const url = new URL(image)
+    return url.protocol === "https:" && url.hostname === "utfs.io"
+  } catch {
+    return false
+  }
+}
+
+function isSupportedImageReference(image: string) {
+  return image.startsWith("/images/") || isUploadThingImage(image)
+}
+
 export function ProductForm({
   type,
+  imageUploadsEnabled,
   product,
   productId,
   returnTo = "/admin/products",
@@ -52,6 +67,8 @@ export function ProductForm({
   const router = useRouter()
   const { locale } = useLocale()
   const [isPending, startTransition] = useTransition()
+  const [imageUrl, setImageUrl] = useState("")
+  const [bannerUrl, setBannerUrl] = useState("")
 
   const form = useForm<InsertProduct | UpdateProduct>({
     resolver: zodResolver(
@@ -94,6 +111,37 @@ export function ProductForm({
   const images = form.watch("images")
   const isFeatured = form.watch("isFeatured")
   const banner = form.watch("banner")
+
+  const addImageUrl = () => {
+    const nextImage = imageUrl.trim()
+    if (!isSupportedImageReference(nextImage)) {
+      toast.error(translate(locale, "Enter a valid image URL or /images/ path."))
+      return
+    }
+
+    const currentImages = form.getValues("images")
+    if (!currentImages.includes(nextImage)) {
+      form.setValue("images", [...currentImages, nextImage], {
+        shouldDirty: true,
+        shouldValidate: true,
+      })
+    }
+    setImageUrl("")
+  }
+
+  const addBannerUrl = () => {
+    const nextBanner = bannerUrl.trim()
+    if (!isSupportedImageReference(nextBanner)) {
+      toast.error(translate(locale, "Enter a valid image URL or /images/ path."))
+      return
+    }
+
+    form.setValue("banner", nextBanner, {
+      shouldDirty: true,
+      shouldValidate: true,
+    })
+    setBannerUrl("")
+  }
 
   return (
     <Form {...form}>
@@ -229,9 +277,14 @@ export function ProductForm({
                             onClick={() => {
                               startTransition(async () => {
                                 try {
-                                  await axios.delete("/api/uploadthing", {
-                                    data: { url: image }, // Send image URL to delete from storage
-                                  })
+                                  if (
+                                    imageUploadsEnabled &&
+                                    isUploadThingImage(image)
+                                  ) {
+                                    await axios.delete("/api/uploadthing", {
+                                      data: { url: image },
+                                    })
+                                  }
                                   // Remove image from form state
                                   form.setValue(
                                     "images",
@@ -255,18 +308,48 @@ export function ProductForm({
                           />
                         </div>
                       ))}
-                      <FormControl>
-                        <UploadButton
-                          endpoint="imageUploader"
-                          onClientUploadComplete={(res: { url: string }[]) => {
-                            form.setValue("images", [...images, res[0].url])
-                          }}
-                          onUploadError={(error: Error) => {
-                            toast.error(`ERROR! ${error.message}`)
-                          }}
-                        />
-                      </FormControl>
+                      {imageUploadsEnabled && (
+                        <FormControl>
+                          <UploadButton
+                            endpoint="imageUploader"
+                            onClientUploadComplete={(res: { url: string }[]) => {
+                              const uploadedImage = res[0]?.url
+                              if (uploadedImage) {
+                                form.setValue("images", [
+                                  ...form.getValues("images"),
+                                  uploadedImage,
+                                ])
+                              }
+                            }}
+                            onUploadError={(error: Error) => {
+                              toast.error(`ERROR! ${error.message}`)
+                            }}
+                          />
+                        </FormControl>
+                      )}
                     </div>
+                    <div className="flex w-full gap-2">
+                      <Input
+                        value={imageUrl}
+                        onChange={(event) => setImageUrl(event.target.value)}
+                        placeholder={translate(
+                          locale,
+                          "Image URL or /images/ path",
+                        )}
+                        aria-label={translate(locale, "Image URL")}
+                      />
+                      <Button type="button" onClick={addImageUrl}>
+                        <TranslatedText text="Add image" />
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      <TranslatedText text="Use a public HTTPS image from utfs.io or a path under /images/." />
+                    </p>
+                    {!imageUploadsEnabled && (
+                      <p className="text-sm text-muted-foreground">
+                        <TranslatedText text="Direct uploads are disabled. Configure UPLOADTHING_TOKEN to upload files." />
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
                 <FormMessage />
@@ -305,9 +388,14 @@ export function ProductForm({
                     onClick={() => {
                       startTransition(async () => {
                         try {
-                          await axios.delete("/api/uploadthing", {
-                            data: { url: banner }, // Send image URL to delete from storage
-                          })
+                          if (
+                            imageUploadsEnabled &&
+                            isUploadThingImage(banner)
+                          ) {
+                            await axios.delete("/api/uploadthing", {
+                              data: { url: banner },
+                            })
+                          }
                           // Remove image from form state
                           form.setValue("banner", "")
                           toast.success(translate(locale, "Image removed successfully"))
@@ -331,15 +419,36 @@ export function ProductForm({
               )}
 
               {isFeatured && !banner && (
-                <UploadButton
-                  endpoint="imageUploader"
-                  onClientUploadComplete={(res: { url: string }[]) => {
-                    form.setValue("banner", res[0].url)
-                  }}
-                  onUploadError={(error: Error) => {
-                    toast.error(`ERROR! ${error.message}`)
-                  }}
-                />
+                <div className="space-y-2">
+                  {imageUploadsEnabled && (
+                    <UploadButton
+                      endpoint="imageUploader"
+                      onClientUploadComplete={(res: { url: string }[]) => {
+                        const uploadedBanner = res[0]?.url
+                        if (uploadedBanner) {
+                          form.setValue("banner", uploadedBanner)
+                        }
+                      }}
+                      onUploadError={(error: Error) => {
+                        toast.error(`ERROR! ${error.message}`)
+                      }}
+                    />
+                  )}
+                  <div className="flex w-full gap-2">
+                    <Input
+                      value={bannerUrl}
+                      onChange={(event) => setBannerUrl(event.target.value)}
+                      placeholder={translate(
+                        locale,
+                        "Image URL or /images/ path",
+                      )}
+                      aria-label={translate(locale, "Image URL")}
+                    />
+                    <Button type="button" onClick={addBannerUrl}>
+                      <TranslatedText text="Add banner" />
+                    </Button>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>

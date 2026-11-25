@@ -31,6 +31,7 @@ export default async function SellerProductUpdatePage({
         product={product}
         productId={product.id}
         returnTo="/seller/products"
+        imageUploadsEnabled={Boolean(process.env.UPLOADTHING_TOKEN?.trim())}
       />
     </>
   )

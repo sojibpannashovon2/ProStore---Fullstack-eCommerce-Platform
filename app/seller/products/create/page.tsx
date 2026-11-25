@@ -14,7 +14,11 @@ export default function CreateSellerProductPage() {
         <TranslatedText text="Create Product" />
       </h1>
       <div className="my-8">
-        <ProductForm type="Create" returnTo="/seller/products" />
+        <ProductForm
+          type="Create"
+          returnTo="/seller/products"
+          imageUploadsEnabled={Boolean(process.env.UPLOADTHING_TOKEN?.trim())}
+        />
       </div>
     </>
   )

@@ -675,7 +675,7 @@ const getAllOrdersCached = unstable_cache(
 export async function getAllOrders(params: {
   limit?: number
   page: number
-  query: string
+  query?: string
 }) {
   await assertPermission("orders.manage")
   const page = Number.isFinite(params.page)
@@ -687,7 +687,7 @@ export async function getAllOrders(params: {
       : Number.isFinite(params.limit)
         ? Math.min(100, Math.max(1, Math.trunc(params.limit)))
         : PAGE_SIZE
-  const query = z.string().max(120).parse(params.query)
+  const query = z.string().max(120).parse(params.query ?? "")
   return getAllOrdersCached({ ...params, limit, page, query })
 }
 

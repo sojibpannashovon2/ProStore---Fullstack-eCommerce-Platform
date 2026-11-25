@@ -7,6 +7,9 @@ import { toast } from "sonner"
 import { deliverOrder } from "@/lib/actions/order.actions"
 
 import { Button } from "@/components/ui/button"
+import { TranslatedText } from "@/components/shared/translated-text"
+import { translateMessage } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 interface MarkAsDeliveredButtonProps {
   orderId: string
@@ -14,6 +17,7 @@ interface MarkAsDeliveredButtonProps {
 
 export function MarkAsDeliveredButton({ orderId }: MarkAsDeliveredButtonProps) {
   const [isPending, startTransition] = useTransition()
+  const { locale } = useLocale()
 
   return (
     <Button
@@ -23,14 +27,16 @@ export function MarkAsDeliveredButton({ orderId }: MarkAsDeliveredButtonProps) {
         startTransition(async () => {
           const res = await deliverOrder(orderId)
           if (res.success) {
-            toast.success(res.message)
+            toast.success(translateMessage(locale, res.message))
           } else {
-            toast.error(res.message)
+            toast.error(translateMessage(locale, res.message))
           }
         })
       }
     >
-      {isPending ? "processing..." : "Mark As Delivered"}
+      {isPending
+        ? <TranslatedText text="processing..." />
+        : <TranslatedText text="Mark As Delivered" />}
     </Button>
   )
 }

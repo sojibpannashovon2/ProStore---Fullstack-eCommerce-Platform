@@ -36,6 +36,10 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { TranslatedText } from "@/components/shared/translated-text"
+import { translate } from "@/lib/i18n/translations"
+import { translateMessage } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 interface ReviewFormProps {
   userId: string
@@ -44,6 +48,7 @@ interface ReviewFormProps {
 
 export function ReviewForm({ userId, productId }: ReviewFormProps) {
   const [open, setOpen] = useState(false)
+  const { locale } = useLocale()
 
   const form = useForm<InsertReview>({
     resolver: zodResolver(insertReviewSchema),
@@ -71,25 +76,25 @@ export function ReviewForm({ userId, productId }: ReviewFormProps) {
     const res = await createUpdateReview({ ...values, productId })
 
     if (!res.success) {
-      return toast.error(res.message)
+      return toast.error(translateMessage(locale, res.message))
     }
 
     setOpen(false)
-    toast.success(res.message)
+    toast.success(translateMessage(locale, res.message))
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Button onClick={handleOpenForm} variant="default">
-        Write a Review
+        <TranslatedText text="Write a Review" />
       </Button>
       <DialogContent className="sm:max-w-[425px]">
         <Form {...form}>
           <form method="post" onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle>Write a Review</DialogTitle>
+              <DialogTitle><TranslatedText text="Write a Review" /></DialogTitle>
               <DialogDescription>
-                Share your thoughts with other customers
+                <TranslatedText text="Share your thoughts with other customers" />
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -98,9 +103,9 @@ export function ReviewForm({ userId, productId }: ReviewFormProps) {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
+                    <FormLabel><TranslatedText text="Title" /></FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter title" {...field} />
+                      <Input placeholder={translate(locale, "Enter title")} {...field} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -110,9 +115,9 @@ export function ReviewForm({ userId, productId }: ReviewFormProps) {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel><TranslatedText text="Description" /></FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Enter description" {...field} />
+                      <Textarea placeholder={translate(locale, "Enter description")} {...field} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -123,7 +128,7 @@ export function ReviewForm({ userId, productId }: ReviewFormProps) {
                 name="rating"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Rating</FormLabel>
+                    <FormLabel><TranslatedText text="Rating" /></FormLabel>
                     <FormControl>
                       <div className="flex items-center space-x-1">
                         {Array.from({ length: 5 }).map((_, index) => {
@@ -154,7 +159,9 @@ export function ReviewForm({ userId, productId }: ReviewFormProps) {
                 className="w-full"
                 disabled={form.formState.isSubmitting}
               >
-                {form.formState.isSubmitting ? "Submitting..." : "Submit"}
+                {form.formState.isSubmitting
+                  ? <TranslatedText text="Submitting..." />
+                  : <TranslatedText text="Submit" />}
               </Button>
             </DialogFooter>
           </form>

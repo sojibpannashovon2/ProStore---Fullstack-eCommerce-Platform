@@ -4,33 +4,18 @@ import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
 
 import { auth } from "@/auth"
+import { z } from "zod"
 
 import type { ActionReturn, Cart, CartItem } from "@/types"
 
 import { prisma } from "@/db/prisma"
 
 import { getProductById } from "@/lib/actions/product.actions"
-import { convertToPlainObject, formatError, round2 } from "@/lib/utils"
+import { calcCartPrice } from "@/lib/cart/pricing"
+import { calculateCouponDiscount } from "@/lib/coupon-pricing"
+import { assertRole } from "@/lib/auth-guard"
+import { convertToPlainObject, formatError } from "@/lib/utils"
 import { cartItemSchema, insertCartSchema } from "@/lib/validators"
-
-import { DEFAULT_SHIPPING_PRICE, DEFAULT_TAX_PERCENTAGE } from "@/constants"
-
-// Calculate cart prices
-const calcPrice = (items: CartItem[]) => {
-  const itemsPrice = round2(
-      items.reduce((acc, item) => acc + Number(item.price) * item.qty, 0),
-    ),
-    shippingPrice = round2(itemsPrice > 100 ? 0 : DEFAULT_SHIPPING_PRICE),
-    taxPrice = round2(DEFAULT_TAX_PERCENTAGE * itemsPrice),
-    totalPrice = round2(itemsPrice + taxPrice + shippingPrice)
-
-  return {
-    itemsPrice: itemsPrice.toFixed(2),
-    shippingPrice: shippingPrice.toFixed(2),
-    taxPrice: taxPrice.toFixed(2),
-    totalPrice: totalPrice.toFixed(2),
-  }
-}
 
 export async function addItemToCart(data: CartItem): ActionReturn {
   try {
@@ -46,11 +31,23 @@ export async function addItemToCart(data: CartItem): ActionReturn {
     const cart = await getMyCart()
 
     // Parse and validate item
-    const item = cartItemSchema.parse(data)
+    const submittedItem = cartItemSchema.parse(data)
 
     // Find product in database
-    const product = await getProductById(item.productId)
+    const product = await getProductById(submittedItem.productId)
     if (!product) throw new Error("Product not found")
+    if (!product.isApproved) throw new Error("Product is not available for sale")
+    if (product.isArchived) throw new Error("Product is no longer available")
+    if (!product.images[0]) throw new Error("Product image is unavailable")
+
+    const item = cartItemSchema.parse({
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      qty: submittedItem.qty,
+      image: product.images[0],
+      price: product.price.toString(),
+    })
 
     if (!cart) {
       // Create new cart object
@@ -58,7 +55,7 @@ export async function addItemToCart(data: CartItem): ActionReturn {
         userId: userId,
         items: [item],
         sessionCartId: sessionCartId,
-        ...calcPrice([item]),
+        ...calcCartPrice([item]),
       })
 
       // Add to database
@@ -84,12 +81,15 @@ export async function addItemToCart(data: CartItem): ActionReturn {
         }
 
         // Increase the quantity
-        cart.items.find((x) => x.productId === item.productId)!.qty =
-          existItem.qty + 1
+        cart.items = cart.items.map((cartItem) =>
+          cartItem.productId === item.productId
+            ? { ...item, qty: existItem.qty + 1 }
+            : cartItem,
+        )
       } else {
         // If item does not exist in cart
         // Check stock
-        if (product.stock < 1) throw new Error("Not enough stock")
+        if (product.stock < item.qty) throw new Error("Not enough stock")
 
         // Add item to the cart.items
         cart.items.push(item)
@@ -100,7 +100,8 @@ export async function addItemToCart(data: CartItem): ActionReturn {
         where: { id: cart.id },
         data: {
           items: cart.items,
-          ...calcPrice(cart.items),
+          couponCode: null,
+          ...calcCartPrice(cart.items),
         },
       })
 
@@ -139,11 +140,13 @@ export async function getMyCart(): Promise<
   // Convert decimals and return
   return convertToPlainObject({
     ...cart,
-    items: cart.items as CartItem[],
+    items: z.array(cartItemSchema).parse(cart.items),
     itemsPrice: cart.itemsPrice.toString(),
     totalPrice: cart.totalPrice.toString(),
     shippingPrice: cart.shippingPrice.toString(),
     taxPrice: cart.taxPrice.toString(),
+    discountPrice: cart.discountPrice.toString(),
+    couponCode: cart.couponCode,
   })
 }
 
@@ -153,8 +156,10 @@ export async function removeItemFromCart(productId: string): ActionReturn {
     const sessionCartId = (await cookies()).get("sessionCartId")?.value
     if (!sessionCartId) throw new Error("Cart session not found")
 
+    const id = z.string().uuid().parse(productId)
+
     // Find product in database
-    const product = await getProductById(productId)
+    const product = await getProductById(id)
     if (!product) throw new Error("Product not found")
 
     // Get user cart
@@ -162,7 +167,7 @@ export async function removeItemFromCart(productId: string): ActionReturn {
     if (!cart) throw new Error("Cart not found")
 
     // Check for item
-    const exist = cart.items.find((x) => x.productId === productId)
+    const exist = cart.items.find((x) => x.productId === id)
     if (!exist) throw new Error("Item not found")
 
     // Check if only one in qty
@@ -171,7 +176,7 @@ export async function removeItemFromCart(productId: string): ActionReturn {
       cart.items = cart.items.filter((x) => x.productId !== exist.productId)
     } else {
       // Decrease qty
-      cart.items.find((x) => x.productId === productId)!.qty = exist.qty - 1
+      cart.items.find((x) => x.productId === id)!.qty = exist.qty - 1
     }
 
     // Update cart in database
@@ -179,7 +184,8 @@ export async function removeItemFromCart(productId: string): ActionReturn {
       where: { id: cart.id },
       data: {
         items: cart.items,
-        ...calcPrice(cart.items as CartItem[]),
+        couponCode: null,
+        ...calcCartPrice(cart.items),
       },
     })
 
@@ -189,6 +195,73 @@ export async function removeItemFromCart(productId: string): ActionReturn {
       success: true,
       message: `${product.name} was removed from cart`,
     }
+  } catch (error) {
+    return { success: false, message: formatError(error) }
+  }
+}
+
+export async function applyCouponToCart(code: string): ActionReturn {
+  try {
+    const customer = await assertRole("customer")
+    const normalizedCode = z
+      .string()
+      .trim()
+      .min(3)
+      .max(40)
+      .transform((value) => value.toUpperCase())
+      .parse(code)
+    const cart = await getMyCart()
+    if (!cart || cart.items.length === 0) throw new Error("Your cart is empty")
+
+    const coupon = await prisma.coupon.findUnique({
+      where: { code: normalizedCode },
+    })
+    if (!coupon) throw new Error("Coupon not found")
+    const itemsPrice = Number(cart.itemsPrice)
+    const discount = calculateCouponDiscount(coupon, itemsPrice)
+    const [totalUses, customerUses] = await prisma.$transaction([
+      prisma.couponUsage.count({ where: { couponId: coupon.id } }),
+      prisma.couponUsage.count({
+        where: { couponId: coupon.id, userId: customer.id },
+      }),
+    ])
+    if (coupon.usageLimit !== null && totalUses >= coupon.usageLimit) {
+      throw new Error("This coupon has reached its usage limit")
+    }
+    if (customerUses > 0) {
+      throw new Error("You have already used this coupon")
+    }
+
+    await prisma.cart.update({
+      where: { id: cart.id },
+      data: {
+        couponCode: coupon.code,
+        ...calcCartPrice(cart.items, discount),
+      },
+    })
+    revalidatePath("/cart")
+    return { success: true, message: "Coupon applied" }
+  } catch (error) {
+    return { success: false, message: formatError(error) }
+  }
+}
+
+export async function removeCouponFromCart(): ActionReturn {
+  try {
+    const customer = await assertRole("customer")
+    const cart = await getMyCart()
+    if (!cart) throw new Error("Cart not found")
+    if (cart.userId !== customer.id) throw new Error("Unauthorized action")
+
+    await prisma.cart.update({
+      where: { id: cart.id },
+      data: {
+        couponCode: null,
+        ...calcCartPrice(cart.items),
+      },
+    })
+    revalidatePath("/cart")
+    return { success: true, message: "Coupon removed" }
   } catch (error) {
     return { success: false, message: formatError(error) }
   }

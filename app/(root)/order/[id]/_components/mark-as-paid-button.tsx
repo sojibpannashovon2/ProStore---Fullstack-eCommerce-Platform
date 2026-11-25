@@ -7,6 +7,9 @@ import { toast } from "sonner"
 import { updateOrderToPaidCOD } from "@/lib/actions/order.actions"
 
 import { Button } from "@/components/ui/button"
+import { TranslatedText } from "@/components/shared/translated-text"
+import { translateMessage } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 interface MarkAsPaidButtonProps {
   orderId: string
@@ -14,6 +17,7 @@ interface MarkAsPaidButtonProps {
 
 export function MarkAsPaidButton({ orderId }: MarkAsPaidButtonProps) {
   const [isPending, startTransition] = useTransition()
+  const { locale } = useLocale()
 
   return (
     <Button
@@ -24,14 +28,16 @@ export function MarkAsPaidButton({ orderId }: MarkAsPaidButtonProps) {
           const res = await updateOrderToPaidCOD(orderId)
 
           if (res.success) {
-            toast.success(res.message)
+            toast.success(translateMessage(locale, res.message))
           } else {
-            toast.error(res.message)
+            toast.error(translateMessage(locale, res.message))
           }
         })
       }
     >
-      {isPending ? "processing..." : "Mark As Paid"}
+      {isPending
+        ? <TranslatedText text="processing..." />
+        : <TranslatedText text="Mark As Paid" />}
     </Button>
   )
 }

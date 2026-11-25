@@ -10,6 +10,8 @@ import type { CartItem } from "@/types"
 import { addItemToCart, removeItemFromCart } from "@/lib/actions/cart.actions"
 
 import { Button, type ButtonProps } from "@/components/ui/button"
+import { translate, translateMessage } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 interface CartActionButtonProps extends ButtonProps {
   item: CartItem
@@ -29,6 +31,7 @@ export function CartActionButton({
   ...props
 }: CartActionButtonProps) {
   const [isPending, startTransition] = useTransition()
+  const { locale } = useLocale()
 
   const handleClick = () => {
     startTransition(async () => {
@@ -38,12 +41,12 @@ export function CartActionButton({
           : await removeItemFromCart(item.productId)
 
       if (!res.success) {
-        toast.error(res.message)
+        toast.error(translateMessage(locale, res.message))
       } else {
         if (onSuccess) {
           onSuccess(res.message)
         } else {
-          toast.success(res.message)
+          toast.success(translateMessage(locale, res.message))
         }
       }
     })
@@ -56,7 +59,10 @@ export function CartActionButton({
       type={type}
       size={size}
       onClick={handleClick}
-      aria-label={actionType === "add" ? "Add to cart" : "Remove from cart"}
+      aria-label={translate(
+        locale,
+        label ?? (actionType === "add" ? "Add to cart" : "Remove from cart"),
+      )}
       {...props}
     >
       {isPending ? (
@@ -66,7 +72,7 @@ export function CartActionButton({
       ) : (
         <MinusIcon className="h-4 w-4" />
       )}
-      {label}
+      {label && translate(locale, label)}
     </Button>
   )
 }

@@ -14,9 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { translate } from "@/lib/i18n/translations"
+
+import { useLocale } from "@/providers/locale-provider"
 
 export function Search({ categories }: { categories: { category: string }[] }) {
   const router = useRouter()
+  const { locale } = useLocale()
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("all")
 
@@ -30,17 +34,17 @@ export function Search({ categories }: { categories: { category: string }[] }) {
   }
 
   return (
-    <form onSubmit={handleSearch}>
-      <div className="flex w-full max-w-sm items-center space-x-2">
+    <form className="w-full" onSubmit={handleSearch}>
+      <div className="flex w-full max-w-sm items-center gap-2">
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="w-auto">
-            <SelectValue placeholder="All" />
+          <SelectTrigger className="w-auto shrink-0">
+            <SelectValue placeholder={translate(locale, "All")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="all">{translate(locale, "All")}</SelectItem>
             {categories.map((x) => (
               <SelectItem key={x.category} value={x.category}>
-                {x.category}
+                {translate(locale, x.category)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -49,10 +53,11 @@ export function Search({ categories }: { categories: { category: string }[] }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           type="text"
-          placeholder="Search..."
-          className="md:w-[100px] lg:w-[300px]"
+          placeholder={translate(locale, "Search...")}
+          aria-label={translate(locale, "Search...")}
+          className="min-w-0 flex-1"
         />
-        <Button type="submit">
+        <Button type="submit" aria-label={translate(locale, "Search")}>
           <SearchIcon />
         </Button>
       </div>

@@ -6,13 +6,20 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 interface FilterSectionProps {
   title: string
   items: { name: string; value: string }[]
   currentValue: string
-  paramKey: "c" | "p" | "r"
-  getFilterUrl: (params: { c?: string; p?: string; r?: string }) => string
+  paramKey: "c" | "p" | "r" | "b" | "a"
+  getFilterUrl: (params: {
+    c?: string
+    p?: string
+    r?: string
+    b?: string
+    a?: string
+  }) => string
 }
 
 export function FilterSection({
@@ -26,7 +33,7 @@ export function FilterSection({
     <Accordion type="multiple" defaultValue={[paramKey]}>
       <AccordionItem value={paramKey}>
         <AccordionTrigger defaultValue={"open"} className="cursor-pointer">
-          {title}
+          <TranslatedText text={title} />
         </AccordionTrigger>
         <AccordionContent>
           <ul className="space-y-1">
@@ -37,7 +44,7 @@ export function FilterSection({
                 }`}
                 href={getFilterUrl({ [paramKey]: "all" })}
               >
-                All
+                <TranslatedText text="All" />
               </Link>
             </li>
             {items.map((item) => (
@@ -48,7 +55,7 @@ export function FilterSection({
                   }`}
                   href={getFilterUrl({ [paramKey]: item.value })}
                 >
-                  {item.name}
+                  <TranslatedText text={item.name} />
                 </Link>
               </li>
             ))}

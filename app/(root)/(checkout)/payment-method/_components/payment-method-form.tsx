@@ -25,6 +25,9 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { TranslatedText } from "@/components/shared/translated-text"
+import { translateMessage } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 interface PaymentMethodFormProps {
   preferredPaymentMethod: string | null
@@ -33,6 +36,7 @@ export function PaymentMethodForm({
   preferredPaymentMethod,
 }: PaymentMethodFormProps) {
   const router = useRouter()
+  const { locale } = useLocale()
   const [isPending, startTransition] = useTransition()
 
   const form = useForm<PaymentMethod>({
@@ -46,7 +50,7 @@ export function PaymentMethodForm({
     startTransition(async () => {
       const res = await updateUserPaymentMethod(values)
       if (!res.success) {
-        toast.error(res.message)
+        toast.error(translateMessage(locale, res.message))
         return
       }
 
@@ -56,9 +60,11 @@ export function PaymentMethodForm({
 
   return (
     <div className="mx-auto max-w-md space-y-4">
-      <h1 className="h2-bold mt-4">Shipping Address</h1>
+      <h1 className="h2-bold mt-4">
+        <TranslatedText text="Payment Method" />
+      </h1>
       <p className="text-muted-foreground text-sm">
-        Please enter and address to ship to
+        <TranslatedText text="Choose how you would like to pay" />
       </p>
       <Form {...form}>
         <form
@@ -89,7 +95,18 @@ export function PaymentMethodForm({
                             />
                           </FormControl>
                           <FormLabel className="font-normal">
-                            {paymentMethod}
+                            <span className="flex flex-col">
+                              <span><TranslatedText text={paymentMethod} /></span>
+                              <span className="text-muted-foreground text-xs">
+                                <TranslatedText
+                                  text={
+                                    ["PayPal", "Stripe"].includes(paymentMethod)
+                                      ? "Charged in USD"
+                                      : "Charged in BDT"
+                                  }
+                                />
+                              </span>
+                            </span>
                           </FormLabel>
                         </FormItem>
                       ))}
@@ -108,7 +125,7 @@ export function PaymentMethodForm({
               ) : (
                 <ArrowRightIcon className="h-4 w-4" />
               )}{" "}
-              Continue
+              <TranslatedText text="Continue" />
             </Button>
           </div>
         </form>

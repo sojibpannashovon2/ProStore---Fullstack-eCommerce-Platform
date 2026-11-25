@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { Fragment } from "react"
 
 import { cn } from "@/lib/utils"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 const checkoutStepsData = [
   { label: "Shipping Address", href: "/shipping-address" },
@@ -33,7 +34,9 @@ export function CheckoutSteps() {
                 isActive && "bg-secondary",
               )}
             >
-              <Link href={href}>{label}</Link>
+              <Link href={href}>
+                <TranslatedText text={label} />
+              </Link>
             </div>
             {index < checkoutStepsData.length - 1 && (
               <hr className="border-border mx-2 w-16 border-t" />

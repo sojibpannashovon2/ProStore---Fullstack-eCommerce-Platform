@@ -5,6 +5,7 @@ import { getProductById } from "@/lib/actions/product.actions"
 import { requireAdmin } from "@/lib/auth-guard"
 
 import { ProductForm } from "../_components/product-form"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 export const metadata: Metadata = {
   title: "Update Product",
@@ -29,7 +30,7 @@ export default async function AdminProductUpdatePage(
 
   return (
     <>
-      <h1 className="h2-bold">Update Product</h1>
+      <h1 className="h2-bold"><TranslatedText text="Update Product" /></h1>
       <ProductForm type="Update" product={product} productId={product.id} />
     </>
   )

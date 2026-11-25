@@ -16,12 +16,18 @@ const resend = process.env.RESEND_API_KEY
   : null
 
 export const sendPurchaseReceipt = async ({ order }: { order: Order }) => {
-  if (!resend) return
+  if (!resend) {
+    throw new Error("Receipt email is not configured: RESEND_API_KEY is missing")
+  }
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: `${APP_NAME} <${SENDER_EMAIL}>`,
     to: order.user.email,
     subject: `Order Confirmation ${order.id}`,
     react: <PurchaseReceiptEmail order={order} />,
   })
+
+  if (error) {
+    throw new Error(`Receipt email delivery failed: ${error.message}`)
+  }
 }

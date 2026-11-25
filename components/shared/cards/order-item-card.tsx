@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import type { CartItem } from "@/types"
 
+import { CurrencyText } from "@/components/shared/currency-text"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -13,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 interface OrderItemCardProps {
   items: CartItem[]
@@ -26,11 +28,11 @@ export function OrderItemCard({
   return (
     <Card>
       <CardHeader className="flex items-center justify-between">
-        <CardTitle>Order Items</CardTitle>
+        <CardTitle><TranslatedText text="Order Items" /></CardTitle>
 
         {isEditable && (
           <Link href="/cart">
-            <Button variant="outline">Edit</Button>
+            <Button variant="outline"><TranslatedText text="Edit" /></Button>
           </Link>
         )}
       </CardHeader>
@@ -38,9 +40,9 @@ export function OrderItemCard({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Item</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Price</TableHead>
+              <TableHead><TranslatedText text="Item" /></TableHead>
+              <TableHead><TranslatedText text="Quantity" /></TableHead>
+              <TableHead><TranslatedText text="Price" /></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,13 +59,17 @@ export function OrderItemCard({
                       width={50}
                       height={50}
                     />
-                    <span className="px-2">{item.name}</span>
+                    <span className="px-2">
+                      <TranslatedText text={item.name} kind="productName" />
+                    </span>
                   </Link>
                 </TableCell>
                 <TableCell>
                   <span className="px-2">{item.qty}</span>
                 </TableCell>
-                <TableCell className="text-right">${item.price}</TableCell>
+                <TableCell className="text-right">
+                  <CurrencyText value={item.price} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -19,7 +19,9 @@ export default async function ShippingAddressPage() {
   if (!cart || cart.items.length === 0) redirect("/cart")
 
   const session = await auth()
-  if (!session?.user?.id) throw new Error("No user ID")
+  if (!session?.user?.id) {
+    redirect("/sign-in?callbackUrl=%2Fshipping-address")
+  }
 
   const user = await getUserById(session.user.id)
 

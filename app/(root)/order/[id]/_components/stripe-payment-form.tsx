@@ -14,6 +14,8 @@ import { formatCurrency } from "@/lib/utils"
 import { SERVER_URL } from "@/constants"
 
 import { Button } from "@/components/ui/button"
+import { TranslatedText } from "@/components/shared/translated-text"
+import { useLocale } from "@/providers/locale-provider"
 
 interface StripePaymentFormProps {
   priceInCents: number
@@ -26,6 +28,7 @@ export function StripePaymentForm({
 }: StripePaymentFormProps) {
   const stripe = useStripe()
   const elements = useElements()
+  const { locale } = useLocale()
 
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
@@ -60,7 +63,7 @@ export function StripePaymentForm({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="text-xl">Stripe Checkout</div>
+      <div className="text-xl"><TranslatedText text="Stripe Checkout" /></div>
       {errorMessage && <div className="text-destructive">{errorMessage}</div>}
       <PaymentElement />
       <div>
@@ -72,8 +75,8 @@ export function StripePaymentForm({
         disabled={stripe == null || elements == null || isLoading}
       >
         {isLoading
-          ? "Purchasing..."
-          : `Purchase ${formatCurrency(priceInCents / 100)}`}
+          ? <TranslatedText text="Purchasing..." />
+          : `Purchase ${formatCurrency(priceInCents / 100, locale, "USD")}`}
       </Button>
     </form>
   )

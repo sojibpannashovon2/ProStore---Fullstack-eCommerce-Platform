@@ -11,7 +11,7 @@ import type { UpdateUser } from "@/types"
 import { updateUser } from "@/lib/actions/users.actions"
 import { updateUserSchema } from "@/lib/validators"
 
-import { USER_ROLES } from "@/constants"
+import { ASSIGNABLE_USER_ROLES } from "@/constants"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -30,6 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { TranslatedText } from "@/components/shared/translated-text"
+import { translate } from "@/lib/i18n/translations"
+import { translateMessage } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 interface UpdateUserFormProps {
   user: UpdateUser
@@ -37,6 +41,7 @@ interface UpdateUserFormProps {
 
 export function UpdateUserForm({ user }: UpdateUserFormProps) {
   const router = useRouter()
+  const { locale } = useLocale()
 
   const form = useForm<UpdateUser>({
     resolver: zodResolver(updateUserSchema),
@@ -50,9 +55,9 @@ export function UpdateUserForm({ user }: UpdateUserFormProps) {
     })
 
     if (!res.success) {
-      toast.error(res.message)
+      toast.error(translateMessage(locale, res.message))
     } else {
-      toast.success(res.message)
+      toast.success(translateMessage(locale, res.message))
       router.push("/admin/users")
     }
   }
@@ -71,11 +76,11 @@ export function UpdateUserForm({ user }: UpdateUserFormProps) {
             name="email"
             render={({ field }) => (
               <FormItem className="w-full">
-                <FormLabel>Email</FormLabel>
+                <FormLabel><TranslatedText text="Email" /></FormLabel>
                 <FormControl>
                   <Input
                     disabled={true}
-                    placeholder="Enter user email"
+                    placeholder={translate(locale, "Enter user email")}
                     {...field}
                   />
                 </FormControl>
@@ -91,9 +96,9 @@ export function UpdateUserForm({ user }: UpdateUserFormProps) {
             name="name"
             render={({ field }) => (
               <FormItem className="w-full">
-                <FormLabel>Name</FormLabel>
+                <FormLabel><TranslatedText text="Name" /></FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter user name" {...field} />
+                  <Input placeholder={translate(locale, "Enter user name")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -107,20 +112,20 @@ export function UpdateUserForm({ user }: UpdateUserFormProps) {
             name="role"
             render={({ field }) => (
               <FormItem className="w-full">
-                <FormLabel>Role</FormLabel>
+                <FormLabel><TranslatedText text="Role" /></FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   value={field.value.toString()}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
+                      <SelectValue placeholder={translate(locale, "Select a role")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {USER_ROLES.map((role) => (
+                    {ASSIGNABLE_USER_ROLES.map((role) => (
                       <SelectItem key={role} value={role}>
-                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                        <TranslatedText text={role.charAt(0).toUpperCase() + role.slice(1)} />
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -136,7 +141,9 @@ export function UpdateUserForm({ user }: UpdateUserFormProps) {
             className="w-full"
             disabled={form.formState.isSubmitting}
           >
-            {form.formState.isSubmitting ? "Submitting..." : "Update User"}
+            {form.formState.isSubmitting
+              ? <TranslatedText text="Submitting..." />
+              : <TranslatedText text="Update User" />}
           </Button>
         </div>
       </form>

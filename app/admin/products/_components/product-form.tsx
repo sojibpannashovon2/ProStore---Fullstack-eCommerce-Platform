@@ -32,15 +32,25 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { TranslatedText } from "@/components/shared/translated-text"
+import { translate, translateMessage } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 interface ProductFormProps {
   type: "Create" | "Update"
   product?: Product
   productId?: string
+  returnTo?: string
 }
 
-export function ProductForm({ type, product, productId }: ProductFormProps) {
+export function ProductForm({
+  type,
+  product,
+  productId,
+  returnTo = "/admin/products",
+}: ProductFormProps) {
   const router = useRouter()
+  const { locale } = useLocale()
   const [isPending, startTransition] = useTransition()
 
   const form = useForm<InsertProduct | UpdateProduct>({
@@ -56,27 +66,27 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
       const res = await createProduct(values)
 
       if (!res.success) {
-        toast.error(res.message)
+        toast.error(translateMessage(locale, res.message))
       } else {
-        toast.success(res.message)
-        router.push("/admin/products")
+        toast.success(translateMessage(locale, res.message))
+        router.push(returnTo)
       }
     }
 
     // On Update
     if (type === "Update") {
       if (!productId) {
-        router.push("/admin/products")
+        router.push(returnTo)
         return
       }
 
       const res = await updateProduct({ ...values, id: productId })
 
       if (!res.success) {
-        toast.error(res.message)
+        toast.error(translateMessage(locale, res.message))
       } else {
-        toast.success(res.message)
-        router.push("/admin/products")
+        toast.success(translateMessage(locale, res.message))
+        router.push(returnTo)
       }
     }
   }
@@ -99,9 +109,9 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
             name="name"
             render={({ field }) => (
               <FormItem className="w-full">
-                <FormLabel>Name</FormLabel>
+                <FormLabel><TranslatedText text="Name" /></FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter product name" {...field} />
+                  <Input placeholder={translate(locale, "Enter product name")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -113,10 +123,10 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
             name="slug"
             render={({ field }) => (
               <FormItem className="w-full">
-                <FormLabel>Slug</FormLabel>
+                <FormLabel><TranslatedText text="Slug" /></FormLabel>
                 <FormControl>
                   <div className="relative flex items-center justify-center gap-2">
-                    <Input placeholder="Enter slug" {...field} />
+                    <Input placeholder={translate(locale, "Enter slug")} {...field} />
                     <Button
                       type="button"
                       onClick={() => {
@@ -126,7 +136,7 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
                         )
                       }}
                     >
-                      Generate
+                      <TranslatedText text="Generate" />
                     </Button>
                   </div>
                 </FormControl>
@@ -142,9 +152,9 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
             name="category"
             render={({ field }) => (
               <FormItem className="w-full">
-                <FormLabel>Category</FormLabel>
+                <FormLabel><TranslatedText text="Category" /></FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter category" {...field} />
+                  <Input placeholder={translate(locale, "Enter category")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -156,9 +166,9 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
             name="brand"
             render={({ field }) => (
               <FormItem className="w-full">
-                <FormLabel>Brand</FormLabel>
+                <FormLabel><TranslatedText text="Brand" /></FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter brand" {...field} />
+                  <Input placeholder={translate(locale, "Enter brand")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -172,9 +182,9 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
             name="price"
             render={({ field }) => (
               <FormItem className="w-full">
-                <FormLabel>Price</FormLabel>
+                <FormLabel><TranslatedText text="Price" /></FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter product price" {...field} />
+                  <Input placeholder={translate(locale, "Enter product price")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -186,9 +196,9 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
             name="stock"
             render={({ field }) => (
               <FormItem className="w-full">
-                <FormLabel>Stock</FormLabel>
+                <FormLabel><TranslatedText text="Stock" /></FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter stock" {...field} />
+                  <Input placeholder={translate(locale, "Enter stock")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -202,7 +212,7 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
             name="images"
             render={() => (
               <FormItem className="w-full">
-                <FormLabel>Images</FormLabel>
+                <FormLabel><TranslatedText text="Images" /></FormLabel>
                 <Card>
                   <CardContent className="mt-2 min-h-48 space-y-2">
                     <div className="flex-start space-x-2">
@@ -227,10 +237,10 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
                                     "images",
                                     images.filter((img) => img !== image),
                                   )
-                                  toast.success("Image removed successfully")
+                                  toast.success(translate(locale, "Image removed successfully"))
                                 } catch (error) {
                                   console.log(error)
-                                  toast.error("Failed to remove image")
+                                  toast.error(translate(locale, "Failed to remove image"))
                                 }
                               })
                             }}
@@ -266,7 +276,7 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
         </div>
         <div className="upload-field">
           {/* isFeatured */}
-          Featured Product
+          <TranslatedText text="Featured Product" />
           <Card>
             <CardContent className="mt-2 space-y-2">
               <FormField
@@ -280,7 +290,7 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
                         onCheckedChange={field.onChange}
                       />
                     </FormControl>
-                    <FormLabel>Is Featured?</FormLabel>
+                    <FormLabel><TranslatedText text="Is Featured?" /></FormLabel>
                   </FormItem>
                 )}
               />
@@ -300,10 +310,10 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
                           })
                           // Remove image from form state
                           form.setValue("banner", "")
-                          toast.success("Image removed successfully")
+                          toast.success(translate(locale, "Image removed successfully"))
                         } catch (error) {
                           console.log(error)
-                          toast.error("Failed to remove image")
+                          toast.error(translate(locale, "Failed to remove image"))
                         }
                       })
                     }}
@@ -341,10 +351,10 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
             name="description"
             render={({ field }) => (
               <FormItem className="w-full">
-                <FormLabel>Description</FormLabel>
+                <FormLabel><TranslatedText text="Description" /></FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Enter product description"
+                    placeholder={translate(locale, "Enter product description")}
                     className="resize-none"
                     {...field}
                   />
@@ -361,7 +371,9 @@ export function ProductForm({ type, product, productId }: ProductFormProps) {
             disabled={form.formState.isSubmitting}
             className="button col-span-2 w-full"
           >
-            {form.formState.isSubmitting ? "Submitting" : `${type} Product`}
+            {form.formState.isSubmitting
+              ? translate(locale, "Submitting...")
+              : translate(locale, `${type} Product`)}
           </Button>
         </div>
       </form>

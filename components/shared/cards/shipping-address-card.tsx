@@ -42,6 +42,9 @@ export function ShippingAddressCard({
         <p className="text-muted-foreground text-sm">
           {address.postalCode}, {address.country}
         </p>
+        {address.phone && (
+          <p className="text-muted-foreground text-sm">{address.phone}</p>
+        )}
       </div>
     </StatusCard>
   )

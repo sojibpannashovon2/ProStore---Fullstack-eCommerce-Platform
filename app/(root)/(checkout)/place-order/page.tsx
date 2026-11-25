@@ -13,6 +13,7 @@ import { PaymentMethodCard } from "@/components/shared/cards/payment-method-card
 import { ShippingAddressCard } from "@/components/shared/cards/shipping-address-card"
 
 import { PlaceOrderCard } from "./_components/place-order-card"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 export const metadata: Metadata = {
   title: "Place Order",
@@ -20,20 +21,23 @@ export const metadata: Metadata = {
 
 export default async function PlaceOrderPage() {
   const cart = await getMyCart()
+  if (!cart || cart.items.length === 0) redirect("/cart")
+
   const session = await auth()
   const userId = session?.user?.id
 
-  if (!userId) throw new Error("User not found")
+  if (!userId) redirect("/sign-in?callbackUrl=%2Fplace-order")
 
   const user = await getUserById(userId)
 
-  if (!cart || cart.items.length === 0) redirect("/cart")
   if (!user.address) redirect("/shipping-address")
   if (!user.paymentMethod) redirect("/payment-method")
 
   return (
     <>
-      <h1 className="pb-4 text-2xl">Place Order</h1>
+      <h1 className="pb-4 text-2xl">
+        <TranslatedText text="Place Order" />
+      </h1>
       <div className="grid md:grid-cols-3 md:gap-5">
         <div className="space-y-4 overflow-x-auto md:col-span-2">
           <ShippingAddressCard
@@ -55,6 +59,7 @@ export default async function PlaceOrderPage() {
             taxPrice={cart.taxPrice}
             shippingPrice={cart.shippingPrice}
             totalPrice={cart.totalPrice}
+            paymentMethod={user.paymentMethod}
           />
         </div>
       </div>

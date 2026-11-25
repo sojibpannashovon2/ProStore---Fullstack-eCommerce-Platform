@@ -23,6 +23,9 @@ export type ActionReturn = Promise<{
 
 export type Product = z.infer<typeof insertProductSchema> & {
   id: string
+  sellerId: string | null
+  isApproved: boolean
+  isArchived: boolean
   rating: string
   numReviews: number
   createdAt: Date

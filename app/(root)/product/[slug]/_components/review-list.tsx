@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card"
 
 import { ReviewForm } from "./review-form"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 interface ReviewListProps {
   userId: string
@@ -34,19 +35,19 @@ export async function ReviewList({
 
   return (
     <div className="space-y-4">
-      {reviews.length === 0 && <div>No reviews yet</div>}
+      {reviews.length === 0 && <div><TranslatedText text="No reviews yet" /></div>}
       {userId ? (
         <ReviewForm userId={userId} productId={productId} />
       ) : (
         <div>
-          Please
+          <TranslatedText text="Please" />
           <Link
             className="px-2 text-blue-700"
             href={`/sign-in?callbackUrl=/product/${productSlug}`}
           >
-            sign in
+            <TranslatedText text="sign in" />
           </Link>
-          to write a review
+          <TranslatedText text="to write a review" />
         </div>
       )}
       <div className="flex flex-col gap-3">
@@ -68,7 +69,7 @@ export async function ReviewList({
                 <Rating value={review.rating} />
                 <div className="flex items-center">
                   <UserIcon className="mr-1 h-3 w-3" />
-                  {review.user ? review.user.name : "User"}
+                  {review.user ? review.user.name : <TranslatedText text="User" />}
                 </div>
                 <div className="flex items-center">
                   <CalendarIcon className="mr-1 h-3 w-3" />

@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 import SignUpForm from "./_components/sign-up-form"
 
@@ -42,16 +43,17 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
         <CardHeader className="space-y-4">
           <Link href="/" className="flex-center">
             <Image
-              src="/images/logo.svg"
-              width={100}
-              height={100}
+              src="/images/kinora-logo.png"
+              width={450}
+              height={150}
               alt={`${APP_NAME} logo`}
+              className="h-12 w-auto"
               priority={true}
             />
           </Link>
-          <CardTitle className="text-center">Create Account</CardTitle>
+          <CardTitle className="text-center"><TranslatedText text="Create Account" /></CardTitle>
           <CardDescription className="text-center">
-            Enter your information below to sign up
+            <TranslatedText text="Enter your information below to sign up" />
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import { SignOutButton } from "./sign-out-button"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 export async function UserButton() {
   const session = await auth()
@@ -23,7 +24,7 @@ export async function UserButton() {
     return (
       <Button asChild>
         <Link href="/sign-in">
-          <UserIcon /> Sign In
+          <UserIcon /> <TranslatedText text="Sign In" />
         </Link>
       </Button>
     )
@@ -58,19 +59,26 @@ export async function UserButton() {
 
           <DropdownMenuItem>
             <Link href="/user/profile" className="w-full">
-              User Profile
+              <TranslatedText text="User Profile" />
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem>
             <Link href="/user/orders" className="w-full">
-              Order History
+              <TranslatedText text="Order History" />
             </Link>
           </DropdownMenuItem>
 
           {session?.user?.role === "admin" && (
             <DropdownMenuItem>
               <Link href={ADMIN_LINKS[0].href} className="w-full">
-                Admin
+                <TranslatedText text="Admin" />
+              </Link>
+            </DropdownMenuItem>
+          )}
+          {session?.user?.role === "seller" && (
+            <DropdownMenuItem>
+              <Link href="/seller/products" className="w-full">
+                <TranslatedText text="Seller Dashboard" />
               </Link>
             </DropdownMenuItem>
           )}

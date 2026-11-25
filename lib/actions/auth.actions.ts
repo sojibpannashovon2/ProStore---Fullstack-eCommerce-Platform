@@ -12,6 +12,20 @@ import { hash } from "@/lib/encrypt"
 import { formatError } from "@/lib/utils"
 import { signInFormSchema, signUpFormSchema } from "@/lib/validators"
 
+function getCallbackUrl(formData: FormData) {
+  const callbackUrl = formData.get("callbackUrl")
+  if (typeof callbackUrl !== "string") return "/"
+
+  try {
+    const url = new URL(callbackUrl, "http://localhost")
+    if (url.origin !== "http://localhost") return "/"
+
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return "/"
+  }
+}
+
 // import { getMyCart } from "./cart.actions"
 
 // Sign in the user with credentials
@@ -25,7 +39,10 @@ export async function signInWithCredentials(
       password: formData.get("password"),
     })
 
-    await signIn("credentials", user)
+    await signIn("credentials", {
+      ...user,
+      redirectTo: getCallbackUrl(formData),
+    })
 
     return { success: true, message: "Signed in successfully" }
   } catch (error) {
@@ -64,6 +81,7 @@ export async function signUpUser(
     await signIn("credentials", {
       email: user.email,
       password: plainPassword,
+      redirectTo: getCallbackUrl(formData),
     })
 
     return { success: true, message: "User registered successfully" }

@@ -6,6 +6,7 @@ import { formatDateTime } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 type StatusInfo = {
   isComplete: boolean
@@ -30,18 +31,21 @@ export function StatusCard({
   return (
     <Card>
       <CardHeader className="flex items-center justify-between">
-        <CardTitle>{title}</CardTitle>
+        <CardTitle><TranslatedText text={title} /></CardTitle>
         <div className="flex items-center gap-2">
           {/* Conditionally render status badge */}
           {status !== null && (
             <Badge variant={status.isComplete ? "secondary" : "destructive"}>
-              {status.isComplete
-                ? `${status.completeLabel} ${
-                    status.completedAt
-                      ? formatDateTime(status.completedAt).dateTime
-                      : ""
-                  }`
-                : status.incompleteLabel}
+              {status.isComplete ? (
+                <>
+                  <TranslatedText text={status.completeLabel} />{" "}
+                  {status.completedAt
+                    ? formatDateTime(status.completedAt).dateTime
+                    : ""}
+                </>
+              ) : (
+                <TranslatedText text={status.incompleteLabel} />
+              )}
             </Badge>
           )}
 
@@ -49,7 +53,7 @@ export function StatusCard({
           {editHref !== null && (
             <Link href={editHref}>
               <Button variant="outline" size="sm">
-                Edit
+                <TranslatedText text="Edit" />
               </Button>
             </Link>
           )}

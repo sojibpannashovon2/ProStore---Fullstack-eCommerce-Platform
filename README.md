@@ -1,9 +1,6 @@
-<<<<<<< HEAD
-# ProStore---Fullstack-eCommerce-Platform
-=======
 # ProStore - Fullstack eCommerce Platform
 
-ProStore is a full-stack eCommerce website built with **Next.js 15**,**React 19**, **Prisma**, **TailwindCSS v4**, **Stripe**, **PayPal**, and more. It allows users to browse products, manage their carts, and complete purchases with various payment methods. The platform includes an admin dashboard for managing products, orders, and users.
+ProStore is a full-stack eCommerce website built with **Next.js 16.4.6**, **React 19**, **Prisma**, **TailwindCSS v4**, **Stripe**, **PayPal**, and more. It allows users to browse products, manage their carts, and complete purchases with various payment methods. The platform includes admin and seller dashboards.
 
 <img src="/public/images/screen.png" alt="Next.js Ecommerce" />
 
@@ -16,6 +13,10 @@ ProStore is a full-stack eCommerce website built with **Next.js 15**,**React 19*
 
 ## 🚀 Features
 
+The marketplace data model, multi-seller order grouping, ownership boundaries,
+and transaction design are documented in
+[docs/marketplace-schema.md](./docs/marketplace-schema.md).
+
 ### 🛍️ Customer Experience
 
 | Feature                | Description                                                   |
@@ -25,6 +26,7 @@ ProStore is a full-stack eCommerce website built with **Next.js 15**,**React 19*
 | **Smart Cart**         | Guest cart → user cart on login, real-time price updates      |
 | **Checkout Flow**      | 3-step process: Shipping → Payment → Review                   |
 | **Order Tracking**     | View order status, payment confirmation, delivery updates     |
+| **Wishlist**           | Save products to a customer account                            |
 
 ### 💻 Admin Dashboard
 
@@ -35,13 +37,30 @@ ProStore is a full-stack eCommerce website built with **Next.js 15**,**React 19*
 | **Order Processing**   | Update payment/delivery status, view all orders  |
 | **User Management**    | View users, modify roles, manage access          |
 
+### 🏪 Seller Dashboard
+
+- Sellers can create and manage only their own products.
+- Seller listings require administrator approval, and sellers can update fulfillment only for their own seller orders.
+- Seller onboarding requires administrator review and encrypted business-license, government-ID, and tax-document uploads.
+- Seller order views include only their own order items and status; buyer contact and shipping details are not exposed.
+- Super administrators control administrator roles and permissions. Seller access is granted only after application approval.
+
 ### 💳 Payment Options
 
 | Method               | Features                                        |
 | -------------------- | ----------------------------------------------- |
 | **PayPal**           | Secure checkout, automatic payment confirmation |
 | **Stripe**           | Credit card processing, PCI-compliant           |
+| **SSLCommerz**       | Bangladesh checkout, including bKash and Nagad   |
 | **Cash on Delivery** | Admin-marked payment status                     |
+
+Administrators with the `coupons.manage` permission can create and deactivate
+coupons from **Admin → Coupons**. Coupon dates, minimum spend, discount caps,
+and usage limits are validated on the server, and successful uses are recorded
+with the order transaction. The database also includes foundations for
+variant-level inventory, refunds, commissions, manual payouts, notifications,
+and audit logs; those workflows are not all fully implemented yet. Payment
+providers that require credentials remain subject to provider configuration.
 
 ### ✉️ Notifications
 
@@ -52,7 +71,7 @@ ProStore is a full-stack eCommerce website built with **Next.js 15**,**React 19*
 
 ### Frontend
 
-- **Framework**: Next.js 15 (App Router) - React 19
+- **Framework**: Next.js 16.4.6 (App Router, Turbopack) - React 19
 - **UI**: ShadCN components
 - **Styling**: TailwindCSS v4
 - **State**: React Server Components
@@ -62,7 +81,7 @@ ProStore is a full-stack eCommerce website built with **Next.js 15**,**React 19*
 
 - **ORM**: Prisma
 - **Database**: PostgreSQL (NeonDB)
-- **Auth**: NextAuth.js
+- **Auth**: Auth.js with cookie-backed JWT sessions and database-backed role checks
 - **Payments**: Stripe & PayPal & Cash on Delivery
 - **Emails**: Resend + React Email
 
@@ -106,7 +125,7 @@ Follow these steps to get the application up and running locally:
    cp .env.example .env
    ```
 
-   Update the .env file with the necessary values. This file contains crucial information such as your database connection URL, Stripe/PayPal credentials, and other keys. You will need to create accounts for services like Stripe, PayPal, and Resend to obtain these credentials. For more details about the environment variables, please see the [Explanation of Environment Variables](#explanation-of-environment-variables) section.
+   Set `DATABASE_URL` to a PostgreSQL connection string, provide an `AUTH_SECRET`, and set a strong `ENCRYPTION_KEY` of at least 32 characters before starting the app. Set `SUPER_ADMIN_EMAIL` to an existing account email, then run `npm run db:promote-super-admin` once to bootstrap super-administrator access. Payment, upload, and email credentials are only needed for the corresponding integrations. For more details, see the [Explanation of Environment Variables](#explanation-of-environment-variables) section.
    <br>
 
 4. **Run Database Migrations**
@@ -126,7 +145,7 @@ Follow these steps to get the application up and running locally:
    If you'd like to seed the database with sample data (optional), run:
 
    ```bash
-   npx tsx ./db/seed.ts
+   npm run db:seed
    ```
 
 5. **Start the Development Server**
@@ -221,4 +240,3 @@ copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall
->>>>>>> f19b9cc (Initial commit)

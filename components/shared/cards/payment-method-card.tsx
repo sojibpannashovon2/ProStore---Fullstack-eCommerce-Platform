@@ -1,5 +1,6 @@
 // components/checkout/payment-method-card.tsx
 import { StatusCard } from "@/components/shared/cards/status-card"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 interface PaymentMethodCardProps {
   paymentMethod: string
@@ -32,7 +33,7 @@ export function PaymentMethodCard({
       }
       editHref={editHref}
     >
-      <p>{paymentMethod}</p>
+      <p><TranslatedText text={paymentMethod} /></p>
     </StatusCard>
   )
 }

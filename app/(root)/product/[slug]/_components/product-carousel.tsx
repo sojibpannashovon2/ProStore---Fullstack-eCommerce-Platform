@@ -7,6 +7,10 @@ import Autoplay from "embla-carousel-autoplay"
 
 import type { Product } from "@/types"
 
+import { translateCatalogName } from "@/lib/i18n/translations"
+
+import { useLocale } from "@/providers/locale-provider"
+
 import {
   Carousel,
   CarouselContent,
@@ -20,6 +24,8 @@ interface ProductCarouselProps {
 }
 
 export function ProductCarousel({ data }: ProductCarouselProps) {
+  const { locale } = useLocale()
+
   return (
     <Carousel
       className="mb-12 w-full"
@@ -48,7 +54,7 @@ export function ProductCarousel({ data }: ProductCarouselProps) {
                         : `/images/${product.banner}`
                       : (product.images[0] ?? "/images/banner-1.jpg")
                   }
-                  alt={product.name}
+                  alt={translateCatalogName(locale, product.name)}
                   fill
                   sizes="100vw"
                   priority={index === 0}
@@ -56,7 +62,7 @@ export function ProductCarousel({ data }: ProductCarouselProps) {
                 />
                 <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/50 via-transparent to-transparent">
                   <h2 className="mb-5 rounded bg-black/50 px-4 py-2 text-center text-xl font-bold text-white sm:text-2xl">
-                    {product.name}
+                    {translateCatalogName(locale, product.name)}
                   </h2>
                 </div>
               </div>

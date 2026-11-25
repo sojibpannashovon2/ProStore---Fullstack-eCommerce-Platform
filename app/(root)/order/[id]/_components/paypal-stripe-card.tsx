@@ -1,5 +1,6 @@
 "use client"
 
+import { useLocale } from "@/providers/locale-provider"
 import {
   PayPalButtons,
   PayPalScriptProvider,
@@ -11,17 +12,22 @@ import {
   approvePayPalOrder,
   createPayPalOrder,
 } from "@/lib/actions/paypal-payment.actions"
-import { formatCurrency } from "@/lib/utils"
+import { translateMessage } from "@/lib/i18n/translations"
 
+import { CurrencyText } from "@/components/shared/currency-text"
+import { TranslatedText } from "@/components/shared/translated-text"
 import { Card, CardContent } from "@/components/ui/card"
 
 import { MarkAsDeliveredButton } from "./mark-as-delivered-button"
 import { MarkAsPaidButton } from "./mark-as-paid-button"
+import { SSLCommerzPaymentButton } from "./sslcommerz-payment-button"
 import { StripePayment } from "./stripe-payment"
 
 interface PaypalStripeCardProps {
   orderId: string
   itemsPrice: string
+  discountPrice: string
+  couponCode?: string | null
   shippingPrice: string
   taxPrice: string
   totalPrice: string
@@ -35,6 +41,8 @@ interface PaypalStripeCardProps {
 export function PaypalStripeCard({
   orderId,
   itemsPrice,
+  discountPrice,
+  couponCode,
   shippingPrice,
   taxPrice,
   totalPrice,
@@ -44,6 +52,11 @@ export function PaypalStripeCard({
   isDelivered,
   stripeClientSecret,
 }: PaypalStripeCardProps) {
+  const { locale } = useLocale()
+  const paymentCurrency = ["PayPal", "Stripe"].includes(paymentMethod)
+    ? "USD"
+    : "BDT"
+
   const PrintLoadingState = () => {
     const [{ isPending, isRejected }] = usePayPalScriptReducer()
     let status = ""
@@ -53,14 +66,14 @@ export function PaypalStripeCard({
     } else if (isRejected) {
       status = "Error Loading PayPal"
     }
-    return status
+    return <TranslatedText text={status} />
   }
 
   const handleCreatePayPalOrder = async () => {
     const res = await createPayPalOrder(orderId)
 
     if (!res.success) {
-      toast.error(res.message)
+      toast.error(translateMessage(locale, res.message))
     }
 
     return res.data
@@ -69,9 +82,9 @@ export function PaypalStripeCard({
   const handleApprovePayPalOrder = async (data: { orderID: string }) => {
     const res = await approvePayPalOrder(orderId, data)
     if (res.success) {
-      toast.success(res.message)
+      toast.success(translateMessage(locale, res.message))
     } else {
-      toast.error(res.message)
+      toast.error(translateMessage(locale, res.message))
     }
   }
 
@@ -79,20 +92,47 @@ export function PaypalStripeCard({
     <Card>
       <CardContent className="gap-4 space-y-4 p-4">
         <div className="flex justify-between">
-          <div>Items</div>
-          <div>{formatCurrency(itemsPrice)}</div>
+          <div>
+            <TranslatedText text="Items" />
+          </div>
+          <div>
+            <CurrencyText value={itemsPrice} currency={paymentCurrency} />
+          </div>
+        </div>
+        {Number(discountPrice) > 0 && (
+          <div className="flex justify-between text-green-700">
+            <div>
+              <TranslatedText text="Discount" />
+              {couponCode ? ` (${couponCode})` : ""}
+            </div>
+            <div>
+              -<CurrencyText value={discountPrice} currency={paymentCurrency} />
+            </div>
+          </div>
+        )}
+        <div className="flex justify-between">
+          <div>
+            <TranslatedText text="Tax" />
+          </div>
+          <div>
+            <CurrencyText value={taxPrice} currency={paymentCurrency} />
+          </div>
         </div>
         <div className="flex justify-between">
-          <div>Tax</div>
-          <div>{formatCurrency(taxPrice)}</div>
+          <div>
+            <TranslatedText text="Shipping" />
+          </div>
+          <div>
+            <CurrencyText value={shippingPrice} currency={paymentCurrency} />
+          </div>
         </div>
         <div className="flex justify-between">
-          <div>Shipping</div>
-          <div>{formatCurrency(shippingPrice)}</div>
-        </div>
-        <div className="flex justify-between">
-          <div>Total</div>
-          <div>{formatCurrency(totalPrice)}</div>
+          <div>
+            <TranslatedText text="Total" />
+          </div>
+          <div>
+            <CurrencyText value={totalPrice} currency={paymentCurrency} />
+          </div>
         </div>
 
         {/* PayPal Payment */}
@@ -117,6 +157,10 @@ export function PaypalStripeCard({
             orderId={orderId}
             clientSecret={stripeClientSecret}
           />
+        )}
+
+        {!isPaid && paymentMethod === "SSLCOMMERZ" && (
+          <SSLCommerzPaymentButton orderId={orderId} />
         )}
 
         {/* Cash On Delivery */}

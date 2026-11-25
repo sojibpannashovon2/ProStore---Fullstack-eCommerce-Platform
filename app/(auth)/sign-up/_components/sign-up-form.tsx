@@ -11,6 +11,9 @@ import { signUpUser } from "@/lib/actions/auth.actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { TranslatedText } from "@/components/shared/translated-text"
+import { translateMessage } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 const SignUpForm = () => {
   const [data, action] = useActionState(signUpUser, {
@@ -19,14 +22,16 @@ const SignUpForm = () => {
   })
 
   const searchParams = useSearchParams()
+  const { locale } = useLocale()
   const callbackUrl = searchParams.get("callbackUrl") || "/"
+  const signInHref = `/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`
 
   const SignUpButton = () => {
     const { pending } = useFormStatus()
 
     return (
       <Button disabled={pending} className="w-full" variant="default">
-        {pending ? "Submitting..." : "Sign Up"}
+        {pending ? <TranslatedText text="Submitting..." /> : <TranslatedText text="Sign Up" />}
       </Button>
     )
   }
@@ -36,7 +41,7 @@ const SignUpForm = () => {
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
       <div className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="email">Name</Label>
+          <Label htmlFor="email"><TranslatedText text="Name" /></Label>
           <Input
             id="name"
             name="name"
@@ -46,7 +51,7 @@ const SignUpForm = () => {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email"><TranslatedText text="Email" /></Label>
           <Input
             id="email"
             name="email"
@@ -56,7 +61,7 @@ const SignUpForm = () => {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password"><TranslatedText text="Password" /></Label>
           <Input
             id="password"
             name="password"
@@ -67,7 +72,7 @@ const SignUpForm = () => {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Label htmlFor="confirmPassword"><TranslatedText text="Confirm Password" /></Label>
           <Input
             id="confirmPassword"
             name="confirmPassword"
@@ -82,13 +87,15 @@ const SignUpForm = () => {
         </div>
 
         {data && !data.success && (
-          <div className="text-destructive text-center">{data.message}</div>
+          <div className="text-destructive text-center">
+            {translateMessage(locale, data.message)}
+          </div>
         )}
 
         <div className="text-muted-foreground text-center text-sm">
-          Already have an account?{" "}
-          <Link href="/sign-in" target="_self" className="link">
-            Sign In
+          <TranslatedText text="Already have an account?" />{" "}
+          <Link href={signInHref} target="_self" className="link">
+            <TranslatedText text="Sign In" />
           </Link>
         </div>
       </div>

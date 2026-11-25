@@ -11,26 +11,26 @@ export async function Header() {
   const categories = await getAllCategories()
   return (
     <header className="w-full border-b">
-      <div className="wrapper flex-between">
+      <div className="wrapper flex flex-wrap items-center justify-between gap-3">
         <div className="flex-start">
-          <CategoryDrawer />
+          <CategoryDrawer categories={categories} />
           <Link href="/" className="flex-start ml-4">
             <Image
-              src="/images/logo.svg"
+              src="/images/kinora-logo.png"
               alt={`${APP_NAME} logo`}
-              height={48}
-              width={48}
-              priority={true}
+              height={150}
+              width={450}
+              className="h-10 w-auto"
             />
-            <span className="ml-3 hidden text-2xl font-bold lg:block">
-              {APP_NAME}
-            </span>
           </Link>
         </div>
-        <div className="hidden md:block">
+        <div className="hidden min-w-0 flex-1 justify-center lg:flex">
           <Search categories={categories} />
         </div>
         <Menu />
+        <div className="w-full lg:hidden">
+          <Search categories={categories} />
+        </div>
       </div>
     </header>
   )

@@ -10,12 +10,17 @@ import {
 } from "recharts"
 
 import type { SalesDataType } from "@/types"
+import { translate } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
+import { formatCurrency } from "@/lib/utils"
 
 interface ChartsProps {
   data: { salesData: SalesDataType }
 }
 
 export function Charts({ data: { salesData } }: ChartsProps) {
+  const { locale } = useLocale()
+
   return (
     <ResponsiveContainer width="100%" height={350}>
       <BarChart data={salesData}>
@@ -30,7 +35,9 @@ export function Charts({ data: { salesData } }: ChartsProps) {
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${value}`}
+          tickFormatter={(value) =>
+            formatCurrency(Number(value), "en", "USD", 2)
+          }
           tick={{ fill: "currentColor" }} // ✅ Ensures Tailwind applies color
         />
         <Tooltip
@@ -39,7 +46,15 @@ export function Charts({ data: { salesData } }: ChartsProps) {
               return (
                 <div className="bg-muted rounded-md border p-2">
                   <p className="label">{`${label}`}</p>
-                  <p className="desc">Total sales: {`$${payload[0].value}`}</p>
+                  <p className="desc">
+                    {translate(locale, "Total sales")}:{" "}
+                    {formatCurrency(
+                      Number(payload[0].value),
+                      "en",
+                      "USD",
+                      2,
+                    )}
+                  </p>
                 </div>
               )
             }

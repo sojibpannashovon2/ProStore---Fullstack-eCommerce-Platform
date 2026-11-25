@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 // components/search/sort-select.tsx
 
@@ -38,6 +39,8 @@ interface SortSelectProps {
     category?: string
     price?: string
     rating?: string
+    brand?: string
+    availability?: string
     page?: string
   }
 }
@@ -57,14 +60,14 @@ export function SortSelect({ currentSort, searchParams }: SortSelectProps) {
   return (
     <Select value={currentSort} onValueChange={handleValueChange}>
       <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="Sort by" />
+        <SelectValue placeholder={<TranslatedText text="Sort by" />} />
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
-          <SelectLabel>Sort Options</SelectLabel>
+          <SelectLabel><TranslatedText text="Sort Options" /></SelectLabel>
           {SORT_ORDERS.map((s) => (
             <SelectItem key={s} value={s}>
-              {s}
+              <TranslatedText text={s} />
             </SelectItem>
           ))}
         </SelectGroup>

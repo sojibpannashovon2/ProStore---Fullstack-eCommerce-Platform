@@ -18,6 +18,7 @@ export const authConfig = {
         /\/user\/(.*)/,
         /\/order\/(.*)/,
         /\/admin/,
+        /\/seller/,
       ].some((p) => p.test(pathname))
 
       // Check if user is not authenticated and accessing a protected path

@@ -6,7 +6,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 
 import { prisma } from "@/db/prisma"
 
-import { compare } from "@/lib/encrypt"
+import { compare, hash } from "@/lib/encrypt"
 
 import { authConfig } from "./auth.config"
 
@@ -45,6 +45,13 @@ export const config = {
 
           // If password is correct, return user
           if (isMatch) {
+            if (!user.password.startsWith("$2")) {
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { password: await hash(credentials.password as string) },
+              })
+            }
+
             return {
               id: user.id,
               name: user.name,

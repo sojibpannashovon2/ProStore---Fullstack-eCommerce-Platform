@@ -1,6 +1,10 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
+import type { Locale } from "@/lib/i18n/translations"
+
+import { getUsdToBdtRate } from "@/lib/currency"
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -52,26 +56,55 @@ export function round2(value: number | string) {
   }
 }
 
-const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
+const USD_INTEGER_FORMATTER = new Intl.NumberFormat("en-US", {
+  currency: "USD",
+  style: "currency",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+})
+
+const USD_CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
   currency: "USD",
   style: "currency",
   minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 })
 
 // Format currency using the formatter above
-export function formatCurrency(amount: number | string | null | undefined | unknown) {
-  if (typeof amount === "number") {
-    return CURRENCY_FORMATTER.format(amount)
-  } else if (typeof amount === "string") {
-    return CURRENCY_FORMATTER.format(Number(amount))
-  } else if (amount != null) {
-    const numericValue = Number(String(amount))
-    return Number.isFinite(numericValue)
-      ? CURRENCY_FORMATTER.format(numericValue)
-      : "NaN"
-  } else {
-    return "NaN"
+export function formatCurrency(
+  amount: number | string | null | undefined | unknown,
+  locale: Locale = "en",
+  currency: "locale" | "USD" | "BDT" = "locale",
+  fractionDigits: 0 | 2 = 0,
+) {
+  const numericValue =
+    typeof amount === "number" || typeof amount === "string"
+      ? Number(amount)
+      : amount == null
+        ? Number.NaN
+        : Number(String(amount))
+
+  if (!Number.isFinite(numericValue)) return "NaN"
+  if (currency === "USD" || (currency === "locale" && locale === "en")) {
+    return (fractionDigits === 2
+      ? USD_CURRENCY_FORMATTER
+      : USD_INTEGER_FORMATTER
+    ).format(numericValue)
   }
+
+  const rate = getUsdToBdtRate()
+  if (!rate) {
+    return locale === "bn" ? "৳—" : "BDT —"
+  }
+
+  const bdt = new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-BD", {
+    currency: "BDT",
+    style: "currency",
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  })
+
+  return bdt.format(numericValue * rate)
 }
 
 // Format Number

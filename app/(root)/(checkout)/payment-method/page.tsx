@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
 
@@ -14,7 +15,7 @@ export default async function PaymentMethod() {
   const session = await auth()
   const userId = session?.user?.id
 
-  if (!userId) throw new Error("User not found")
+  if (!userId) redirect("/sign-in?callbackUrl=%2Fpayment-method")
 
   const user = await getUserById(userId)
   return <PaymentMethodForm preferredPaymentMethod={user.paymentMethod} />

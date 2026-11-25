@@ -25,24 +25,32 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { TranslatedText } from "@/components/shared/translated-text"
+import { translate } from "@/lib/i18n/translations"
+import { translateMessage } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 interface ShippingAddressFormProps {
   address: ShippingAddress
 }
 export function ShippingAddressForm({ address }: ShippingAddressFormProps) {
   const router = useRouter()
+  const { locale } = useLocale()
   const [isPending, startTransition] = useTransition()
 
   const form = useForm<ShippingAddress>({
     resolver: zodResolver(shippingAddressSchema),
-    defaultValues: address || shippingAddressDefaultValues,
+    defaultValues: {
+      ...(address || shippingAddressDefaultValues),
+      phone: address?.phone || "",
+    },
   })
 
   const onSubmit: SubmitHandler<ShippingAddress> = (values) => {
     startTransition(async () => {
       const res = await updateUserAddress(values)
       if (!res.success) {
-        toast.error(res.message)
+        toast.error(translateMessage(locale, res.message))
         return
       }
 
@@ -52,9 +60,11 @@ export function ShippingAddressForm({ address }: ShippingAddressFormProps) {
 
   return (
     <div className="mx-auto max-w-md space-y-4">
-      <h1 className="h2-bold mt-4">Shipping Address</h1>
+      <h1 className="h2-bold mt-4">
+        <TranslatedText text="Shipping Address" />
+      </h1>
       <p className="text-muted-foreground text-sm">
-        Please enter and address to ship to
+        <TranslatedText text="Please enter an address to ship to" />
       </p>
       <Form {...form}>
         <form
@@ -69,9 +79,30 @@ export function ShippingAddressForm({ address }: ShippingAddressFormProps) {
               name="fullName"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel><TranslatedText text="Full Name" /></FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter full name" {...field} />
+                    <Input placeholder={translate(locale, "Enter full name")} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          {/* Phone number */}
+          <div className="flex flex-col gap-5 md:flex-row">
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem className="w-full">
+                  <FormLabel><TranslatedText text="Phone Number" /></FormLabel>
+                  <FormControl>
+                    <Input
+                      type="tel"
+                      autoComplete="tel"
+                      placeholder={translate(locale, "Enter phone number")}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -85,9 +116,9 @@ export function ShippingAddressForm({ address }: ShippingAddressFormProps) {
               name="streetAddress"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel><TranslatedText text="Address" /></FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter address" {...field} />
+                    <Input placeholder={translate(locale, "Enter address")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -101,9 +132,9 @@ export function ShippingAddressForm({ address }: ShippingAddressFormProps) {
               name="city"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel>City</FormLabel>
+                  <FormLabel><TranslatedText text="City" /></FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter city" {...field} />
+                    <Input placeholder={translate(locale, "Enter city")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -117,9 +148,9 @@ export function ShippingAddressForm({ address }: ShippingAddressFormProps) {
               name="postalCode"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel>Postal Code</FormLabel>
+                  <FormLabel><TranslatedText text="Postal Code" /></FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter postal code" {...field} />
+                    <Input placeholder={translate(locale, "Enter postal code")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -133,9 +164,9 @@ export function ShippingAddressForm({ address }: ShippingAddressFormProps) {
               name="country"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel>Country</FormLabel>
+                  <FormLabel><TranslatedText text="Country" /></FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter country" {...field} />
+                    <Input placeholder={translate(locale, "Enter country")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -150,7 +181,7 @@ export function ShippingAddressForm({ address }: ShippingAddressFormProps) {
               ) : (
                 <ArrowRightIcon className="h-4 w-4" />
               )}{" "}
-              Continue
+              <TranslatedText text="Continue" />
             </Button>
           </div>
         </form>

@@ -4,6 +4,8 @@ import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { TranslatedText } from "@/components/shared/translated-text"
+import { APP_NAME } from "@/constants"
 
 export const metadata: Metadata = {
   title: "Not Found",
@@ -15,19 +17,23 @@ export default function NotFoundPage() {
       <Card className="w-full max-w-md text-center shadow-md">
         <CardHeader className="flex flex-col items-center p-6">
           <Image
-            src="/images/logo.svg"
-            width={48}
-            height={48}
-            alt="App Logo"
+            src="/images/kinora-logo.png"
+            width={450}
+            height={150}
+            alt={`${APP_NAME} logo`}
             priority={true}
-            className="mb-4"
+            className="mb-4 h-10 w-auto"
           />
-          <h1 className="text-2xl font-bold sm:text-3xl">Not Found</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">
+            <TranslatedText text="Not Found" />
+          </h1>
         </CardHeader>
         <CardContent>
-          <p className="text-destructive">Could not find requested page</p>
+          <p className="text-destructive">
+            <TranslatedText text="Could not find requested page" />
+          </p>
           <Button variant="outline" className="mt-4" asChild>
-            <Link href="/">Back To Home</Link>
+            <Link href="/"><TranslatedText text="Back To Home" /></Link>
           </Button>
         </CardContent>
       </Card>

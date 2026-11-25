@@ -43,6 +43,8 @@ PurchaseReceiptEmail.PreviewProps = {
     taxPrice: "10",
     shippingPrice: "10",
     itemsPrice: "80",
+    discountPrice: "0",
+    couponCode: null,
     orderitems: sampleData.products.map((x) => ({
       name: x.name,
       orderId: "123",
@@ -74,6 +76,10 @@ type PurchaseReceiptEmailProps = {
 export default function PurchaseReceiptEmail({
   order,
 }: PurchaseReceiptEmailProps) {
+  const paymentCurrency = ["PayPal", "Stripe"].includes(order.paymentMethod)
+    ? "USD"
+    : "BDT"
+
   return (
     <Html>
       <Preview>View order receipt</Preview>
@@ -103,7 +109,7 @@ export default function PurchaseReceiptEmail({
                     Price Paid
                   </Text>
                   <Text className="mt-0 mr-4">
-                    {formatCurrency(order.totalPrice)}
+                    {formatCurrency(order.totalPrice, "en", paymentCurrency)}
                   </Text>
                 </Column>
               </Row>
@@ -127,7 +133,7 @@ export default function PurchaseReceiptEmail({
                     {item.name} x {item.qty}
                   </Column>
                   <Column align="right" className="align-top">
-                    {formatCurrency(item.price)}
+                    {formatCurrency(item.price, "en", paymentCurrency)}
                   </Column>
                 </Row>
               ))}
@@ -140,7 +146,9 @@ export default function PurchaseReceiptEmail({
                 <Row key={name} className="py-1">
                   <Column align="right">{name}: </Column>
                   <Column align="right" width={70} className="align-top">
-                    <Text className="m-0">{formatCurrency(price)}</Text>
+                    <Text className="m-0">
+                      {formatCurrency(price, "en", paymentCurrency)}
+                    </Text>
                   </Column>
                 </Row>
               ))}

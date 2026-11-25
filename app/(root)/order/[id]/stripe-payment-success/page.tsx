@@ -6,6 +6,7 @@ import Stripe from "stripe"
 import { getOrderById } from "@/lib/actions/order.actions"
 
 import { Button } from "@/components/ui/button"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -47,10 +48,10 @@ export default async function SuccessPage(props: SuccessPageProps) {
   return (
     <div className="mx-auto w-full max-w-4xl space-y-8">
       <div className="flex flex-col items-center gap-6">
-        <h1 className="h1-bold">Thanks for your purchase</h1>
-        <div>We are processing your order.</div>
+        <h1 className="h1-bold"><TranslatedText text="Thanks for your purchase" /></h1>
+        <div><TranslatedText text="We are processing your order." /></div>
         <Button asChild>
-          <Link href={`/order/${id}`}>View Order</Link>
+          <Link href={`/order/${id}`}><TranslatedText text="View Order" /></Link>
         </Button>
       </div>
     </div>

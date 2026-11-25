@@ -19,9 +19,13 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { translate } from "@/lib/i18n/translations"
+import { translateMessage } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 export function ProfileForm() {
   const { data: session, update } = useSession()
+  const { locale } = useLocale()
 
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateProfileSchema),
@@ -35,7 +39,7 @@ export function ProfileForm() {
     const res = await updateProfile(values)
 
     if (!res.success) {
-      toast.error(res.message)
+      toast.error(translateMessage(locale, res.message))
       return
     }
 
@@ -47,7 +51,7 @@ export function ProfileForm() {
       },
     }
     await update(newSession)
-    toast.success(res.message)
+    toast.success(translateMessage(locale, res.message))
   }
 
   return (
@@ -65,7 +69,7 @@ export function ProfileForm() {
                 <FormControl>
                   <Input
                     disabled
-                    placeholder="Email"
+                    placeholder={translate(locale, "Email")}
                     className="input-field"
                     {...field}
                   />
@@ -81,7 +85,7 @@ export function ProfileForm() {
               <FormItem className="w-full">
                 <FormControl>
                   <Input
-                    placeholder="Name"
+                    placeholder={translate(locale, "Name")}
                     className="input-field"
                     {...field}
                   />
@@ -97,7 +101,9 @@ export function ProfileForm() {
           className="button col-span-2 w-full"
           disabled={form.formState.isSubmitting}
         >
-          {form.formState.isSubmitting ? "Submitting..." : "Update Profile"}
+          {form.formState.isSubmitting
+            ? translate(locale, "Submitting...")
+            : translate(locale, "Update Profile")}
         </Button>
       </form>
     </Form>

@@ -6,6 +6,7 @@ import { MoonIcon, SunIcon, SunMoonIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
+import { TranslatedText } from "@/components/shared/translated-text"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -44,25 +45,27 @@ export function ModeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+        <DropdownMenuLabel>
+          <TranslatedText text="Appearance" />
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
           checked={theme === "system"}
           onClick={() => setTheme("system")}
         >
-          System
+          <TranslatedText text="System" />
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={theme === "dark"}
           onClick={() => setTheme("dark")}
         >
-          Dark
+          <TranslatedText text="Dark" />
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={theme === "light"}
           onClick={() => setTheme("light")}
         >
-          Light
+          <TranslatedText text="Light" />
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>

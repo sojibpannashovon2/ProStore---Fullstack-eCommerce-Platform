@@ -4,10 +4,11 @@ import Link from "next/link"
 import { Eye } from "lucide-react"
 
 import { getOrderSummary } from "@/lib/actions/order.actions"
-import { requireAdmin } from "@/lib/auth-guard"
+import { requirePermission } from "@/lib/auth-guard"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
+import { TranslatedText } from "@/components/shared/translated-text"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -26,19 +27,22 @@ export const metadata: Metadata = {
 }
 
 export default async function AdminDashboardPage() {
-  await requireAdmin()
+  await requirePermission("dashboard.view")
 
   const summary = await getOrderSummary()
 
   return (
     <div className="space-y-4">
-      <h1 className="h2-bold">Dashboard</h1>
+      <h1 className="h2-bold"><TranslatedText text="Dashboard" /></h1>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardCard
           title="Total Revenue"
           icon={{ name: "BadgeDollarSign" }}
           value={formatCurrency(
             summary.totalSales._sum.totalPrice?.toString() || 0,
+            "en",
+            "USD",
+            2,
           )}
         />
         <DashboardCard
@@ -60,7 +64,7 @@ export default async function AdminDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-full w-full md:col-span-4">
           <CardHeader>
-            <CardTitle>Overview</CardTitle>
+            <CardTitle><TranslatedText text="Overview" /></CardTitle>
           </CardHeader>
           <CardContent>
             <Charts
@@ -72,28 +76,30 @@ export default async function AdminDashboardPage() {
         </Card>
         <Card className="col-span-full w-full md:col-span-3">
           <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
+            <CardTitle><TranslatedText text="Recent Sales" /></CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>BUYER</TableHead>
-                  <TableHead>DATE</TableHead>
-                  <TableHead>TOTAL</TableHead>
-                  <TableHead>ACTIONS</TableHead>
+                  <TableHead><TranslatedText text="BUYER" /></TableHead>
+                  <TableHead><TranslatedText text="DATE" /></TableHead>
+                  <TableHead><TranslatedText text="TOTAL" /></TableHead>
+                  <TableHead><TranslatedText text="ACTIONS" /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {summary.latestOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell>
-                      {order?.user?.name ? order.user.name : "Deleted User"}
+                      {order?.user?.name ? order.user.name : <TranslatedText text="Deleted User" />}
                     </TableCell>
                     <TableCell>
                       {formatDateTime(order.createdAt).dateOnly}
                     </TableCell>
-                    <TableCell>{formatCurrency(order.totalPrice)}</TableCell>
+                    <TableCell>
+                      {formatCurrency(order.totalPrice, "en", "USD", 2)}
+                    </TableCell>
                     <TableCell>
                       <Link href={`/order/${order.id}`}>
                         <Button
@@ -102,7 +108,7 @@ export default async function AdminDashboardPage() {
                           className="cursor-pointer"
                         >
                           <Eye />
-                          <span className="sr-only">order details</span>
+                          <span className="sr-only"><TranslatedText text="order details" /></span>
                         </Button>
                       </Link>
                     </TableCell>

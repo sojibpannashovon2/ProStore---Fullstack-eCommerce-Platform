@@ -19,6 +19,8 @@ export function ProductImages({ images }: ProductImagesProps) {
         alt="product image"
         width={1000}
         height={1000}
+        sizes="(min-width: 768px) 50vw, 100vw"
+        priority
         className="min-h-[300px] object-cover object-center"
       />
       <div className="flex">
@@ -31,7 +33,14 @@ export function ProductImages({ images }: ProductImagesProps) {
               current === index && "border-destructive",
             )}
           >
-            <Image src={image} alt="image" width={100} height={100} />
+            <Image
+              src={image}
+              alt="image"
+              width={100}
+              height={100}
+              sizes="100px"
+              loading="lazy"
+            />
           </div>
         ))}
       </div>

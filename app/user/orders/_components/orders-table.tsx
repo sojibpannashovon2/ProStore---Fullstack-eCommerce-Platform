@@ -1,9 +1,11 @@
 import Link from "next/link"
 
 import { getMyOrders } from "@/lib/actions/order.actions"
-import { formatCurrency, formatDateTime, formatId } from "@/lib/utils"
+import { formatDateTime, formatId } from "@/lib/utils"
 
 import { AppPagination } from "@/components/shared/app-pagination"
+import { CurrencyText } from "@/components/shared/currency-text"
+import { TranslatedText } from "@/components/shared/translated-text"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -30,12 +32,12 @@ export async function OrdersTable({ searchParams }: OrdersTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>DATE</TableHead>
-            <TableHead>TOTAL</TableHead>
-            <TableHead>PAID</TableHead>
-            <TableHead>DELIVERED</TableHead>
-            <TableHead>ACTIONS</TableHead>
+            <TableHead><TranslatedText text="ID" /></TableHead>
+            <TableHead><TranslatedText text="DATE" /></TableHead>
+            <TableHead><TranslatedText text="TOTAL" /></TableHead>
+            <TableHead><TranslatedText text="PAID" /></TableHead>
+            <TableHead><TranslatedText text="DELIVERED" /></TableHead>
+            <TableHead><TranslatedText text="ACTIONS" /></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -43,20 +45,31 @@ export async function OrdersTable({ searchParams }: OrdersTableProps) {
             <TableRow key={order.id}>
               <TableCell>{formatId(order.id)}</TableCell>
               <TableCell>{formatDateTime(order.createdAt).dateTime}</TableCell>
-              <TableCell>{formatCurrency(order.totalPrice)}</TableCell>
+              <TableCell>
+                <CurrencyText
+                  value={String(order.totalPrice)}
+                  currency={
+                    ["PayPal", "Stripe"].includes(order.paymentMethod)
+                      ? "USD"
+                      : "BDT"
+                  }
+                />
+              </TableCell>
               <TableCell>
                 {order.isPaid && order.paidAt
                   ? formatDateTime(order.paidAt).dateTime
-                  : "Not Paid"}
+                  : <TranslatedText text="Not Paid" />}
               </TableCell>
               <TableCell>
                 {order.isDelivered && order.deliveredAt
                   ? formatDateTime(order.deliveredAt).dateTime
-                  : "Not Delivered"}
+                  : <TranslatedText text="Not Delivered" />}
               </TableCell>
               <TableCell>
                 <Button asChild variant="outline" size="sm">
-                  <Link href={`/order/${order.id}`}>Details</Link>
+                  <Link href={`/order/${order.id}`}>
+                    <TranslatedText text="Details" />
+                  </Link>
                 </Button>
               </TableCell>
             </TableRow>

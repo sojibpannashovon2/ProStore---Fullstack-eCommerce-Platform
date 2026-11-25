@@ -1,0 +1,128 @@
+.card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-width: 24rem;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--card-foreground);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.card:hover,
+.card:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 8%);
+}
+
+.profilePic {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--muted);
+}
+
+.imageLink {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.image {
+  object-fit: cover;
+  object-position: center;
+  transition: transform 200ms ease;
+}
+
+.card:hover .image,
+.card:focus-within .image {
+  transform: scale(1.03);
+}
+
+.bottom {
+  display: flex;
+  min-height: 12.5rem;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.content {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+}
+
+.brand {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.nameLink {
+  color: var(--card-foreground);
+  text-decoration: none;
+}
+
+.nameLink:focus-visible {
+  border-radius: 0.2rem;
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.reviewCount {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.price {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.bottomBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.stock {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .image {
+    transition: none;
+  }
+}

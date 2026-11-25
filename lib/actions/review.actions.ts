@@ -1,14 +1,14 @@
 "use server"
 
 import { Prisma } from "@prisma/client"
-import { revalidateTag, unstable_cache } from "next/cache"
-
-import { auth } from "@/auth"
+import { unstable_cache, updateTag } from "next/cache"
+import { z } from "zod"
 
 import { InsertReview } from "@/types"
 
 import { prisma } from "@/db/prisma"
 
+import { assertRole, isAdminRole } from "@/lib/auth-guard"
 import { formatError } from "@/lib/utils"
 import { insertReviewSchema } from "@/lib/validators"
 
@@ -25,7 +25,7 @@ export type ReviewWithUser = Prisma.ReviewGetPayload<{
 }>
 
 // Cached function for fetching reviews
-export const getReviews = unstable_cache(
+const getReviewsCached = unstable_cache(
   async ({ productId }: { productId: string }): Promise<{ data: ReviewWithUser[] }> => {
     const data: ReviewWithUser[] = await prisma.review.findMany({
       where: {
@@ -49,16 +49,20 @@ export const getReviews = unstable_cache(
   { tags: ["getReviews"] },
 )
 
+export async function getReviews(params: { productId: string }) {
+  const productId = z.string().uuid().parse(params.productId)
+  return getReviewsCached({ productId })
+}
+
 // Create & Update Reviews
 export async function createUpdateReview(data: InsertReview) {
   try {
-    const session = await auth()
-    if (!session) throw new Error("User is not authenticated")
+    const actor = await assertRole("admin", "seller", "customer")
 
     // Validate and store the review
     const review = insertReviewSchema.parse({
       ...data,
-      userId: session?.user?.id,
+      userId: actor.id,
     })
 
     // Get product that is being reviewed
@@ -74,7 +78,7 @@ export async function createUpdateReview(data: InsertReview) {
       },
     })
 
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx) => {
       if (reviewExists) {
         // Update review
         await tx.review.update({
@@ -111,9 +115,10 @@ export async function createUpdateReview(data: InsertReview) {
       })
     })
 
-    revalidateTag("getReviews")
-    revalidateTag("getLatestProducts")
-    revalidateTag("getAllProducts")
+    updateTag("getReviews")
+    updateTag("getLatestProducts")
+    updateTag("getAllProducts")
+    updateTag("getFeaturedProducts")
 
     return {
       success: true,
@@ -130,14 +135,13 @@ export async function getReviewByProductId({
 }: {
   productId: string
 }) {
-  const session = await auth()
-
-  if (!session) throw new Error("User is not authenticated")
+  const actor = await assertRole("admin", "seller", "customer")
+  const id = z.string().uuid().parse(productId)
 
   return await prisma.review.findFirst({
     where: {
-      productId,
-      userId: session?.user?.id,
+      productId: id,
+      userId: actor.id,
     },
   })
 }
@@ -145,23 +149,23 @@ export async function getReviewByProductId({
 // Delete a review
 export async function deleteReview(reviewId: string) {
   try {
-    const session = await auth()
-    if (!session) throw new Error("User is not authenticated")
+    const actor = await assertRole("admin", "seller", "customer")
+    const id = z.string().uuid().parse(reviewId)
 
     const review = await prisma.review.findUnique({
-      where: { id: reviewId },
+      where: { id },
       select: { userId: true, productId: true },
     })
 
     if (!review) throw new Error("Review not found")
 
-    const isAdmin = session?.user?.role === "admin"
-    if (review.userId !== session?.user?.id && !isAdmin) {
+    const isAdmin = isAdminRole(actor.role)
+    if (review.userId !== actor.id && !isAdmin) {
       throw new Error("Unauthorized action")
     }
 
-    await prisma.$transaction(async (tx: any) => {
-      await tx.review.delete({ where: { id: reviewId } })
+    await prisma.$transaction(async (tx) => {
+      await tx.review.delete({ where: { id } })
 
       const averageRating = await tx.review.aggregate({
         _avg: { rating: true },
@@ -181,9 +185,10 @@ export async function deleteReview(reviewId: string) {
       })
     })
 
-    revalidateTag("getReviews")
-    revalidateTag("getLatestProducts")
-    revalidateTag("getAllProducts")
+    updateTag("getReviews")
+    updateTag("getLatestProducts")
+    updateTag("getAllProducts")
+    updateTag("getFeaturedProducts")
 
     return { success: true, message: "Review deleted successfully" }
   } catch (error) {

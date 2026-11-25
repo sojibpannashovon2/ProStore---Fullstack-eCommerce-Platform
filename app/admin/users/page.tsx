@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth-guard"
 import { formatId } from "@/lib/utils"
 
 import { AppPagination } from "@/components/shared/app-pagination"
+import { TranslatedText } from "@/components/shared/translated-text"
 import { DeleteDialog } from "@/components/shared/delete-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -40,31 +41,31 @@ export default async function AdminUsersPage(props: AdminUsersPageProps) {
     <div className="space-y-4">
       <div className="flex-between">
         <div className="flex items-center gap-3">
-          <h1 className="h2-bold">Users</h1>
+          <h1 className="h2-bold"><TranslatedText text="Users" /></h1>
           {searchText && (
             <div>
-              Filtered by <i>&quot;{searchText}&quot;</i>{" "}
+              <TranslatedText text="Filtered by" /> <i>&quot;{searchText}&quot;</i>{" "}
               <Link href="/admin/users">
                 <Button variant="outline" size="sm">
-                  Remove Filter
+                  <TranslatedText text="Remove Filter" />
                 </Button>
               </Link>
             </div>
           )}
         </div>
         <Button asChild variant="default">
-          <Link href="/admin/users/create">Create Product</Link>
+          <Link href="/admin/users/create"><TranslatedText text="Create User" /></Link>
         </Button>
       </div>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>NAME</TableHead>
-              <TableHead>EMAIL</TableHead>
-              <TableHead>ROLE</TableHead>
-              <TableHead>ACTIONS</TableHead>
+              <TableHead><TranslatedText text="ID" /></TableHead>
+              <TableHead><TranslatedText text="NAME" /></TableHead>
+              <TableHead><TranslatedText text="EMAIL" /></TableHead>
+              <TableHead><TranslatedText text="ROLE" /></TableHead>
+              <TableHead><TranslatedText text="ACTIONS" /></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -74,15 +75,15 @@ export default async function AdminUsersPage(props: AdminUsersPageProps) {
                 <TableCell>{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
-                  {user.role === "user" ? (
-                    <Badge variant="secondary">User</Badge>
-                  ) : (
-                    <Badge variant="default">Admin</Badge>
-                  )}
+                  <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                    <TranslatedText
+                      text={user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                    />
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Button asChild variant="outline" size="sm">
-                    <Link href={`/admin/users/${user.id}`}>Edit</Link>
+                    <Link href={`/admin/users/${user.id}`}><TranslatedText text="Edit" /></Link>
                   </Button>
                   <DeleteDialog id={user.id} action={deleteUser} />
                 </TableCell>

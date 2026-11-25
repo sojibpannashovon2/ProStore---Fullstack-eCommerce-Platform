@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 export function OrdersTableSkeleton({ rows = PAGE_SIZE }: { rows?: number }) {
   return (
@@ -16,12 +17,12 @@ export function OrdersTableSkeleton({ rows = PAGE_SIZE }: { rows?: number }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>DATE</TableHead>
-            <TableHead>TOTAL</TableHead>
-            <TableHead>PAID</TableHead>
-            <TableHead>DELIVERED</TableHead>
-            <TableHead>ACTIONS</TableHead>
+            <TableHead><TranslatedText text="ID" /></TableHead>
+            <TableHead><TranslatedText text="DATE" /></TableHead>
+            <TableHead><TranslatedText text="TOTAL" /></TableHead>
+            <TableHead><TranslatedText text="PAID" /></TableHead>
+            <TableHead><TranslatedText text="DELIVERED" /></TableHead>
+            <TableHead><TranslatedText text="ACTIONS" /></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

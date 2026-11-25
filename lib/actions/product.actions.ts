@@ -1,7 +1,8 @@
 "use server"
 
-import { revalidatePath, revalidateTag } from "next/cache"
-import { unstable_cache } from "next/cache"
+import { revalidatePath, updateTag, unstable_cache } from "next/cache"
+import { cache } from "react"
+import { z } from "zod"
 
 import { Prisma } from "@prisma/client"
 
@@ -14,6 +15,7 @@ import type {
 
 import { prisma } from "@/db/prisma"
 
+import { assertPermission, assertRole } from "@/lib/auth-guard"
 import { convertToPlainObject, formatError } from "@/lib/utils"
 import { insertProductSchema, updateProductSchema } from "@/lib/validators"
 
@@ -27,12 +29,74 @@ type GetAllProductsOptions = {
   price?: string
   rating?: string
   sort?: string
+  sellerId?: string
+  includeUnapproved?: boolean
+  includeArchived?: boolean
+  brand?: string
+  availability?: "all" | "in-stock"
 }
+
+export async function approveProduct(productId: string) {
+  try {
+    const actor = await assertPermission("products.manage")
+    const id = z.string().uuid().parse(productId)
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: { id: true, isApproved: true, isArchived: true },
+    })
+    if (!product) throw new Error("Product not found")
+    if (product.isArchived) {
+      throw new Error("Archived products cannot be approved")
+    }
+    if (product.isApproved) {
+      return { success: true, message: "Product is already approved" }
+    }
+
+    await prisma.$transaction([
+      prisma.product.update({
+        where: { id },
+        data: { isApproved: true },
+      }),
+      prisma.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: "product.approved",
+          targetType: "Product",
+          targetId: id,
+        },
+      }),
+    ])
+    revalidateProductCaches()
+    revalidatePath("/admin/products")
+    revalidatePath("/seller/products")
+    return { success: true, message: "Product approved" }
+  } catch (error) {
+    return { success: false, message: formatError(error) }
+  }
+}
+
+const getAllProductsOptionsSchema = z.object({
+  query: z.string().max(120).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+  page: z.number().int().positive(),
+  category: z.string().max(100).optional(),
+  price: z
+    .string()
+    .regex(/^\d+(?:\.\d+)?-\d+(?:\.\d+)?$/)
+    .or(z.literal("all"))
+    .optional(),
+  rating: z.enum(["all", "1", "2", "3", "4", "5"]).optional(),
+  sort: z.enum(["newest", "lowest", "highest", "rating"]).optional(),
+  sellerId: z.string().uuid().optional(),
+  brand: z.string().max(100).optional(),
+  availability: z.enum(["all", "in-stock"]).optional(),
+})
 
 //  get the latest products
 export const getLatestProducts = unstable_cache(
   async (): Promise<Product[]> => {
     const data = await prisma.product.findMany({
+      where: { isApproved: true, isArchived: false },
       take: LATEST_PRODUCTS_LIMIT,
       orderBy: { createdAt: "desc" },
     })
@@ -40,24 +104,29 @@ export const getLatestProducts = unstable_cache(
     return convertToPlainObject(data)
   },
   ["getLatestProducts"], // Cache key
-  { revalidate: 60 * 60, tags: ["getLatestProducts"] }, // Cache expires every 60 seconds
+  { revalidate: 60, tags: ["getLatestProducts"] },
 )
 
 // Get featured products
-export async function getFeaturedProducts() {
-  const data = await prisma.product.findMany({
-    where: { isFeatured: true },
-    orderBy: { createdAt: "desc" },
-    take: 4,
-  })
+export const getFeaturedProducts = unstable_cache(
+  async (): Promise<Product[]> => {
+    const data = await prisma.product.findMany({
+      where: { isFeatured: true, isApproved: true, isArchived: false },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+    })
 
-  return convertToPlainObject(data)
-}
+    return convertToPlainObject(data)
+  },
+  ["getFeaturedProducts"],
+  { revalidate: 60, tags: ["getFeaturedProducts"] },
+)
 
 // Get single product by it's id
 export async function getProductById(id: string) {
+  const productId = z.string().uuid().parse(id)
   const product = await prisma.product.findUnique({
-    where: { id },
+    where: { id: productId },
   })
 
   if (!product) return null
@@ -66,14 +135,26 @@ export async function getProductById(id: string) {
 }
 
 // Get single product by it's slug
-export async function getProductBySlug(slug: string) {
-  return await prisma.product.findFirst({
-    where: { slug },
+export const getProductBySlug = cache(async (slug: string) => {
+  return prisma.product.findFirst({
+    where: { slug, isApproved: true, isArchived: false },
+    include: {
+      seller: {
+        select: {
+          name: true,
+          store: { select: { name: true, slug: true } },
+        },
+      },
+      variants: {
+        select: { sku: true },
+        take: 1,
+      },
+    },
   })
-}
+})
 
 // Get all products
-export const getAllProducts = unstable_cache(
+const getAllProductsCached = unstable_cache(
   async ({
     query,
     limit = PAGE_SIZE,
@@ -82,7 +163,15 @@ export const getAllProducts = unstable_cache(
     price,
     rating,
     sort,
-  }: GetAllProductsOptions): Promise<{ data: Product[]; totalPages: number }> => {
+    sellerId,
+    includeUnapproved = false,
+    includeArchived = false,
+    brand,
+    availability,
+  }: GetAllProductsOptions): Promise<{
+    data: Product[]
+    totalPages: number
+  }> => {
     // Query filter
     const queryFilter: Prisma.ProductWhereInput =
       query && query !== "all"
@@ -118,80 +207,163 @@ export const getAllProducts = unstable_cache(
           }
         : {}
 
-    const pageNumber = Number(page) || 1 // Default to page 1 if undefined
-    const skip = (pageNumber - 1) * limit
+    const safeLimit = Math.min(100, Math.max(1, Math.trunc(limit)))
+    const skip = (page - 1) * safeLimit
 
-    const data: Product[] = await prisma.product.findMany({
-      where: {
-        ...queryFilter,
-        ...categoryFilter,
-        ...priceFilter,
-        ...ratingFilter,
-      },
-      orderBy:
-        sort === "lowest"
-          ? { price: "asc" }
-          : sort === "highest"
-            ? { price: "desc" }
-            : sort === "rating"
-              ? { rating: "desc" }
-              : { createdAt: "desc" },
-      skip,
-      take: limit,
-    })
+    const where: Prisma.ProductWhereInput = {
+      ...queryFilter,
+      ...categoryFilter,
+      ...priceFilter,
+      ...ratingFilter,
+      ...(sellerId ? { sellerId } : {}),
+      ...(brand && brand !== "all" ? { brand } : {}),
+      ...(availability === "in-stock" ? { stock: { gt: 0 } } : {}),
+      ...(includeUnapproved ? {} : { isApproved: true }),
+      ...(includeArchived ? {} : { isArchived: false }),
+    }
 
-    const dataCount = await prisma.product.count({
-      where: {
-        ...queryFilter,
-        ...categoryFilter,
-        ...priceFilter,
-        ...ratingFilter,
-      },
-    })
+    const orderBy =
+      sort === "lowest"
+        ? { price: "asc" as const }
+        : sort === "highest"
+          ? { price: "desc" as const }
+          : sort === "rating"
+            ? { rating: "desc" as const }
+            : { createdAt: "desc" as const }
+
+    const [data, dataCount]: [Product[], number] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        orderBy,
+        skip,
+        take: safeLimit,
+      }),
+      prisma.product.count({ where }),
+    ])
 
     return {
       data,
-      totalPages: Math.ceil(dataCount / limit),
+      totalPages: Math.ceil(dataCount / safeLimit),
     }
   },
   ["getAllProducts"], // Cache key
-  { revalidate: 60 * 60, tags: ["getAllProducts"] }, // Cache expires every 60 seconds
+  { revalidate: 60, tags: ["getAllProducts"] },
 )
 
+export async function getAllProducts(options: GetAllProductsOptions) {
+  const parsedOptions = getAllProductsOptionsSchema.parse(options)
+  return getAllProductsCached(parsedOptions)
+}
+
+export async function getAdminProducts(options: GetAllProductsOptions) {
+  await assertPermission("products.manage")
+  const parsedOptions = getAllProductsOptionsSchema.parse(options)
+  return getAllProductsCached({
+    ...parsedOptions,
+    includeUnapproved: true,
+    includeArchived: true,
+  })
+}
+
+export async function getSellerProducts(page: number) {
+  const seller = await assertPermission("seller.products.manage")
+  return getAllProductsCached({
+    page: Number.isFinite(page) ? Math.max(1, Math.trunc(page)) : 1,
+    sellerId: seller.id,
+    includeUnapproved: true,
+  })
+}
+
+export async function getSellerProductById(id: string) {
+  const seller = await assertPermission("seller.products.manage")
+  const productId = z.string().uuid().parse(id)
+  const product = await prisma.product.findFirst({
+    where: { id: productId, sellerId: seller.id },
+  })
+  return product ? convertToPlainObject(product) : null
+}
+
 function revalidateProductCaches() {
-  revalidateTag("getLatestProducts")
-  revalidateTag("getAllProducts")
+  updateTag("getLatestProducts")
+  updateTag("getAllProducts")
+  updateTag("getFeaturedProducts")
+  updateTag("getAllCategories")
+  updateTag("getAllBrands")
   revalidatePath("/")
   revalidatePath("/search")
 }
 
 // Get all categories with product counts
-export async function getAllCategories(): Promise<
-  Array<{ category: string; _count: { category: number } }>
-> {
-  const data = await prisma.product.groupBy({
-    by: ["category"], // Group by category
-    _count: {
-      category: true, // Count the number of products per category
-    },
-  })
+export const getAllCategories = unstable_cache(
+  async (): Promise<
+    Array<{ category: string; _count: { category: number } }>
+  > => {
+    const data = await prisma.product.groupBy({
+      by: ["category"],
+      where: { isApproved: true, isArchived: false },
+      _count: {
+        category: true,
+      },
+    })
 
-  return convertToPlainObject(data) as Array<{
-    category: string
-    _count: { category: number }
-  }>
-}
+    return convertToPlainObject(data) as Array<{
+      category: string
+      _count: { category: number }
+    }>
+  },
+  ["getAllCategories"],
+  { revalidate: 60 * 60, tags: ["getAllCategories"] },
+)
+
+export const getAllBrands = unstable_cache(
+  async (): Promise<Array<{ brand: string }>> => {
+    const data = await prisma.product.groupBy({
+      by: ["brand"],
+      where: { isApproved: true, isArchived: false },
+      orderBy: { brand: "asc" },
+    })
+    return data.map(({ brand }) => ({ brand }))
+  },
+  ["getAllBrands"],
+  { revalidate: 60 * 60, tags: ["getAllBrands"] },
+)
 
 // Delete a product
 export async function deleteProduct(id: string) {
   try {
-    const productExists = await getProductById(id)
+    const actor = await assertRole("admin", "seller")
+    await assertPermission(
+      actor.role === "seller" ? "seller.products.manage" : "products.manage",
+    )
+    const productId = z.string().uuid().parse(id)
+    const productExists = await getProductById(productId)
 
     if (!productExists) throw new Error("Product not found")
+    if (actor.role === "seller" && productExists.sellerId !== actor.id) {
+      throw new Error("You can only manage your own products")
+    }
 
-    await prisma.product.delete({ where: { id } })
+    if (productExists.isArchived) {
+      return { success: true, message: "Product is already archived" }
+    }
+
+    await prisma.$transaction([
+      prisma.product.update({
+        where: { id: productId },
+        data: { isArchived: true },
+      }),
+      prisma.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: "product.archived",
+          targetType: "Product",
+          targetId: productId,
+        },
+      }),
+    ])
 
     revalidatePath("/admin/products")
+    revalidatePath("/seller/products")
     revalidateProductCaches()
 
     return {
@@ -206,15 +378,29 @@ export async function deleteProduct(id: string) {
 // Create a product
 export async function createProduct(data: InsertProduct): ActionReturn {
   try {
+    const actor = await assertRole("admin", "seller")
+    await assertPermission(
+      actor.role === "seller" ? "seller.products.manage" : "products.manage",
+    )
     const product = insertProductSchema.parse(data)
-    await prisma.product.create({ data: product })
+    await prisma.product.create({
+      data: {
+        ...product,
+        sellerId: actor.role === "seller" ? actor.id : null,
+        isApproved: actor.role !== "seller",
+      },
+    })
 
     revalidatePath("/admin/products")
+    revalidatePath("/seller/products")
     revalidateProductCaches()
 
     return {
       success: true,
-      message: "Product created successfully",
+      message:
+        actor.role === "seller"
+          ? "Product submitted for administrator approval"
+          : "Product created successfully",
     }
   } catch (error) {
     return { success: false, message: formatError(error) }
@@ -224,17 +410,31 @@ export async function createProduct(data: InsertProduct): ActionReturn {
 // Update a product
 export async function updateProduct(data: UpdateProduct): ActionReturn {
   try {
+    const actor = await assertRole("admin", "seller")
+    await assertPermission(
+      actor.role === "seller" ? "seller.products.manage" : "products.manage",
+    )
     const product = updateProductSchema.parse(data)
     const productExists = await getProductById(product.id)
 
     if (!productExists) throw new Error("Product not found")
+    if (actor.role === "seller" && productExists.sellerId !== actor.id) {
+      throw new Error("You can only manage your own products")
+    }
+    if (productExists.isArchived) {
+      throw new Error("Archived products cannot be edited")
+    }
 
     await prisma.product.update({
       where: { id: product.id },
-      data: product,
+      data: {
+        ...product,
+        ...(actor.role === "seller" ? { isApproved: false } : {}),
+      },
     })
 
     revalidatePath("/admin/products")
+    revalidatePath("/seller/products")
     revalidateProductCaches()
 
     return {

@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth-guard"
 import { formatCurrency, formatDateTime, formatId } from "@/lib/utils"
 
 import { AppPagination } from "@/components/shared/app-pagination"
+import { TranslatedText } from "@/components/shared/translated-text"
 import { DeleteDialog } from "@/components/shared/delete-dialog"
 import { Button } from "@/components/ui/button"
 import {
@@ -37,13 +38,13 @@ export default async function AdminOrdersPage(props: AdminOrdersPageProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
-        <h2 className="h2-bold">Orders</h2>
+        <h2 className="h2-bold"><TranslatedText text="Orders" /></h2>
         {searchText && (
           <div>
-            Filtered by <i>&quot;{searchText}&quot;</i>{" "}
+            <TranslatedText text="Filtered by" /> <i>&quot;{searchText}&quot;</i>{" "}
             <Link href="/admin/orders">
               <Button variant="outline" size="sm">
-                Remove Filter
+                <TranslatedText text="Remove Filter" />
               </Button>
             </Link>
           </div>
@@ -54,13 +55,13 @@ export default async function AdminOrdersPage(props: AdminOrdersPageProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>DATE</TableHead>
-                <TableHead>BUYER</TableHead>
-                <TableHead>TOTAL</TableHead>
-                <TableHead>PAID</TableHead>
-                <TableHead>DELIVERED</TableHead>
-                <TableHead>ACTIONS</TableHead>
+                <TableHead><TranslatedText text="ID" /></TableHead>
+                <TableHead><TranslatedText text="DATE" /></TableHead>
+                <TableHead><TranslatedText text="BUYER" /></TableHead>
+                <TableHead><TranslatedText text="TOTAL" /></TableHead>
+                <TableHead><TranslatedText text="PAID" /></TableHead>
+                <TableHead><TranslatedText text="DELIVERED" /></TableHead>
+                <TableHead><TranslatedText text="ACTIONS" /></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -71,20 +72,22 @@ export default async function AdminOrdersPage(props: AdminOrdersPageProps) {
                     {formatDateTime(order.createdAt).dateTime}
                   </TableCell>
                   <TableCell>{order.user.name}</TableCell>
-                  <TableCell>{formatCurrency(order.totalPrice)}</TableCell>
+                  <TableCell>
+                    {formatCurrency(order.totalPrice, "en", "USD", 2)}
+                  </TableCell>
                   <TableCell>
                     {order.isPaid && order.paidAt
                       ? formatDateTime(order.paidAt).dateTime
-                      : "Not Paid"}
+                      : <TranslatedText text="Not Paid" />}
                   </TableCell>
                   <TableCell>
                     {order.isDelivered && order.deliveredAt
                       ? formatDateTime(order.deliveredAt).dateTime
-                      : "Not Delivered"}
+                      : <TranslatedText text="Not Delivered" />}
                   </TableCell>
                   <TableCell>
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/order/${order.id}`}>Details</Link>
+                      <Link href={`/order/${order.id}`}><TranslatedText text="Details" /></Link>
                     </Button>
                     <DeleteDialog action={deleteOrder} id={order.id} />
                   </TableCell>

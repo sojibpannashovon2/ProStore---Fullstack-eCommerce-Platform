@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import React from "react"
 
 import { cn } from "@/lib/utils"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 interface NavLink {
   title: string
@@ -32,7 +33,7 @@ export function MainNav({ links, className, ...props }: MainNavProps) {
             pathname.includes(item.href) ? "" : "text-muted-foreground",
           )}
         >
-          {item.title}
+          <TranslatedText text={item.title} />
         </Link>
       ))}
     </nav>

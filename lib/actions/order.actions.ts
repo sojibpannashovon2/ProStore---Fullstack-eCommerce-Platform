@@ -1,23 +1,25 @@
 "use server"
 
-import { revalidatePath, revalidateTag, unstable_cache } from "next/cache"
+import { revalidatePath, unstable_cache, updateTag } from "next/cache"
 import { isRedirectError } from "next/dist/client/components/redirect-error"
 
-import { auth } from "@/auth"
-import { sendPurchaseReceipt } from "@/email"
-import { Prisma, type Order } from "@prisma/client"
+import { Prisma, SellerOrderStatus, type Order } from "@prisma/client"
+import { z } from "zod"
 
-import type {
-  ActionReturn,
-  PaymentResult,
-  SalesDataType,
-  ShippingAddress,
-} from "@/types"
+import type { ActionReturn, SalesDataType } from "@/types"
 
 import { prisma } from "@/db/prisma"
 
 import { getMyCart } from "@/lib/actions/cart.actions"
 import { getUserById } from "@/lib/actions/users.actions"
+import {
+  assertPermission,
+  assertRole,
+  isAdminRole,
+} from "@/lib/auth-guard"
+import { calcCartPrice } from "@/lib/cart/pricing"
+import { calculateCouponDiscount } from "@/lib/coupon-pricing"
+import { markOrderAsPaid } from "@/lib/orders/mark-order-paid"
 import { convertToPlainObject, formatError } from "@/lib/utils"
 import { insertOrderSchema } from "@/lib/validators"
 
@@ -32,11 +34,8 @@ type CreateOrderReturn = Promise<{
 // Create order and create the order items
 export async function createOrder(): CreateOrderReturn {
   try {
-    const session = await auth()
-    if (!session) throw new Error("User is not authenticated")
-
-    const userId = session?.user?.id
-    if (!userId) throw new Error("User not found")
+    const actor = await assertRole("admin", "seller", "customer")
+    const userId = actor.id
 
     const cart = await getMyCart()
 
@@ -66,37 +65,175 @@ export async function createOrder(): CreateOrderReturn {
       }
     }
 
+    const cartItems = cart.items
+    const products = await prisma.product.findMany({
+      where: { id: { in: cartItems.map((item) => item.productId) } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        images: true,
+        price: true,
+        stock: true,
+        sellerId: true,
+        isApproved: true,
+        isArchived: true,
+      },
+    })
+    const productsById = new Map(products.map((product) => [product.id, product]))
+    const orderItems = cartItems.map((item) => {
+      const product = productsById.get(item.productId)
+      if (!product) throw new Error("A product in your cart is no longer available")
+      if (!product.isApproved) {
+        throw new Error(`${product.name} is pending administrator approval`)
+      }
+      if (product.isArchived) {
+        throw new Error(`${product.name} is no longer available`)
+      }
+      if (item.qty > product.stock) {
+        throw new Error(`Not enough stock for ${product.name}`)
+      }
+      if (!product.images[0]) {
+        throw new Error(`Product image is unavailable for ${product.name}`)
+      }
+
+      return {
+        productId: product.id,
+        name: product.name,
+        slug: product.slug,
+        image: product.images[0],
+        price: product.price.toString(),
+        sellerId: product.sellerId,
+        qty: item.qty,
+      }
+    })
+
+    const couponCode = cart.couponCode?.trim().toUpperCase() || null
+    const coupon = couponCode
+      ? await prisma.coupon.findUnique({ where: { code: couponCode } })
+      : null
+    if (couponCode && !coupon) throw new Error("Coupon is no longer available")
+    const itemsPrice = orderItems.reduce(
+      (total, item) => total + Number(item.price) * item.qty,
+      0,
+    )
+    const discount = coupon
+      ? calculateCouponDiscount(coupon, itemsPrice)
+      : 0
+
     // Create order object
     const order = insertOrderSchema.parse({
       userId: user.id,
       shippingAddress: user.address,
       paymentMethod: user.paymentMethod,
-      itemsPrice: cart.itemsPrice,
-      shippingPrice: cart.shippingPrice,
-      taxPrice: cart.taxPrice,
-      totalPrice: cart.totalPrice,
+      couponCode: coupon?.code ?? null,
+      ...calcCartPrice(orderItems, discount),
     })
 
     // Create a transaction to create order and order items in database
-    const insertedOrderId = await prisma.$transaction(async (tx: any) => {
-      // Create order
+    const insertedOrderId = await prisma.$transaction(async (tx) => {
+      if (coupon) {
+        await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT "id" FROM "Coupon" WHERE "id" = ${coupon.id}::uuid FOR UPDATE
+        `
+        const currentCoupon = await tx.coupon.findUnique({
+          where: { id: coupon.id },
+        })
+        if (!currentCoupon) throw new Error("Coupon is no longer available")
+
+        const currentDiscount = calculateCouponDiscount(
+          currentCoupon,
+          Number(order.itemsPrice),
+        )
+        const [totalUses, customerUses] = await Promise.all([
+          tx.couponUsage.count({ where: { couponId: currentCoupon.id } }),
+          tx.couponUsage.count({
+            where: { couponId: currentCoupon.id, userId: user.id },
+          }),
+        ])
+        if (
+          currentCoupon.usageLimit !== null &&
+          totalUses >= currentCoupon.usageLimit
+        ) {
+          throw new Error("This coupon has reached its usage limit")
+        }
+        if (customerUses > 0) {
+          throw new Error("You have already used this coupon")
+        }
+        if (currentDiscount !== Number(order.discountPrice)) {
+          throw new Error("Coupon discount changed; please apply it again")
+        }
+      }
+
+      for (const item of orderItems) {
+        const reserved = await tx.product.updateMany({
+          where: { id: item.productId, stock: { gte: item.qty } },
+          data: { stock: { decrement: item.qty } },
+        })
+        if (reserved.count !== 1) {
+          throw new Error(`Not enough stock for ${item.name}`)
+        }
+      }
+
       const insertedOrder = await tx.order.create({ data: order })
-      // Create order items from the cart items
-      for (const item of cart.items) {
-        await tx.orderItem.create({
+      if (coupon) {
+        await tx.couponUsage.create({
           data: {
-            ...item,
-            price: item.price,
+            couponId: coupon.id,
+            userId: user.id,
             orderId: insertedOrder.id,
+            amount: order.discountPrice,
           },
         })
       }
+      const itemsBySeller = new Map<string | null, typeof orderItems>()
+      for (const item of orderItems) {
+        const group = itemsBySeller.get(item.sellerId) ?? []
+        group.push(item)
+        itemsBySeller.set(item.sellerId, group)
+      }
+
+      for (const [sellerId, items] of itemsBySeller) {
+        const itemsPrice = items
+          .reduce((total, item) => total + Number(item.price) * item.qty, 0)
+          .toFixed(2)
+        const sellerOrder = await tx.sellerOrder.create({
+          data: {
+            orderId: insertedOrder.id,
+            sellerId,
+            itemsPrice,
+            shippingPrice: "0.00",
+          },
+        })
+        await tx.orderItem.createMany({
+          data: items.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            slug: item.slug,
+            image: item.image,
+            price: item.price,
+            qty: item.qty,
+            orderId: insertedOrder.id,
+            sellerOrderId: sellerOrder.id,
+          })),
+        })
+        await tx.orderStatusHistory.create({
+          data: {
+            sellerOrderId: sellerOrder.id,
+            status: sellerOrder.status,
+            note: "Seller order created",
+          },
+        })
+      }
+
       // Clear cart
       await tx.cart.update({
         where: { id: cart.id },
         data: {
           items: [],
           totalPrice: 0,
+          discountPrice: 0,
+          couponCode: null,
           taxPrice: 0,
           shippingPrice: 0,
           itemsPrice: 0,
@@ -108,9 +245,10 @@ export async function createOrder(): CreateOrderReturn {
 
     if (!insertedOrderId) throw new Error("Order not created")
 
-    revalidateTag(`orders-${userId}`) // For getMyOrders cache
+    updateTag(`orders-${userId}`) // For getMyOrders cache
     // ✅ Invalidate the cache for `getAllOrders` after creating a new order
-    revalidateTag("all-orders")
+    updateTag("all-orders")
+    revalidatePath("/seller/orders")
 
     return {
       success: true,
@@ -125,9 +263,12 @@ export async function createOrder(): CreateOrderReturn {
 
 // Get order by id
 export async function getOrderById(orderId: string) {
+  const actor = await assertRole("admin", "seller", "customer")
+  const id = z.string().uuid().parse(orderId)
   const data = await prisma.order.findFirst({
     where: {
-      id: orderId,
+      id,
+      ...(isAdminRole(actor.role) ? {} : { userId: actor.id }),
     },
     include: {
       orderitems: true,
@@ -138,79 +279,21 @@ export async function getOrderById(orderId: string) {
   return convertToPlainObject(data)
 }
 
-// Update order to paid
-export async function updateOrderToPaid({
-  orderId,
-  paymentResult,
-}: {
-  orderId: string
-  paymentResult?: PaymentResult
-}) {
-  // Get order from database
-  const order = await prisma.order.findFirst({
-    where: {
-      id: orderId,
-    },
-    include: {
-      orderitems: true,
-    },
-  })
-
-  if (!order) throw new Error("Order not found")
-
-  if (order.isPaid) throw new Error("Order is already paid")
-
-  // Transaction to update order and account for product stock
-  await prisma.$transaction(async (tx: any) => {
-    // Iterate over products and update stock
-    for (const item of order.orderitems) {
-      await tx.product.update({
-        where: { id: item.productId },
-        data: { stock: { increment: -item.qty } },
-      })
-    }
-
-    // Set the order to paid
-    await tx.order.update({
-      where: { id: orderId },
-      data: {
-        isPaid: true,
-        paidAt: new Date(),
-        paymentResult,
-      },
-    })
-  })
-
-  revalidatePath(`/order/${orderId}`)
-  // ✅ Invalidate the cache for `getMyOrders` after creating a new order
-  revalidateTag(`orders-${order.userId}`)
-  // ✅ Invalidate the cache for `getAllOrders` after creating a new order
-  revalidateTag("all-orders")
-
-  // Get updated order after transaction
-  const updatedOrder = await prisma.order.findFirst({
-    where: { id: orderId },
-    include: {
-      orderitems: true,
-      user: { select: { name: true, email: true } },
-    },
-  })
-
-  if (!updatedOrder) throw new Error("Order not found")
-
-  sendPurchaseReceipt({
-    order: {
-      ...updatedOrder,
-      shippingAddress: updatedOrder.shippingAddress as ShippingAddress,
-      paymentResult: updatedOrder.paymentResult as PaymentResult,
-    },
-  })
-}
-
 // Update Cash on Delivery order to paid
 export async function updateOrderToPaidCOD(orderId: string) {
   try {
-    await updateOrderToPaid({ orderId })
+    await assertPermission("orders.manage")
+    const id = z.string().uuid().parse(orderId)
+    const order = await prisma.order.findUnique({
+      where: { id },
+      select: { paymentMethod: true },
+    })
+    if (!order) throw new Error("Order not found")
+    if (order.paymentMethod !== "CashOnDelivery") {
+      throw new Error("Only Cash On Delivery orders can be marked as paid here")
+    }
+
+    await markOrderAsPaid({ orderId: id })
 
     return { success: true, message: "Order marked as paid" }
   } catch (error) {
@@ -221,6 +304,7 @@ export async function updateOrderToPaidCOD(orderId: string) {
 // Update order to delivered
 export async function deliverOrder(orderId: string) {
   try {
+    await assertPermission("orders.manage")
     const order = await getOrderById(orderId)
 
     if (!order) throw new Error("Order not found")
@@ -236,9 +320,9 @@ export async function deliverOrder(orderId: string) {
 
     revalidatePath(`/order/${orderId}`)
     // ✅ Invalidate the cache for `getMyOrders` after updating the deliverOrder
-    revalidateTag(`orders-${order.userId}`)
+    updateTag(`orders-${order.userId}`)
     // ✅ Invalidate the cache for `getAllOrders` after updating the deliverOrder
-    revalidateTag("all-orders")
+    updateTag("all-orders")
 
     return {
       success: true,
@@ -257,45 +341,213 @@ export async function getMyOrders({
   limit?: number
   page: number
 }): Promise<{ data: Order[]; totalPages: number }> {
-  try {
-    const session = await auth()
-    if (!session) throw new Error("User is not authorized")
+  const actor = await assertRole("admin", "seller", "customer")
+  const safePage = Number.isFinite(page) ? Math.max(1, Math.trunc(page)) : 1
+  const safeLimit = Number.isFinite(limit)
+    ? Math.min(100, Math.max(1, Math.trunc(limit)))
+    : PAGE_SIZE
+  const cacheKey = `my-orders-${actor.id}-${safePage}-${safeLimit}`
 
-    const cacheKey = `my-orders-${session.user.id}-${page}-${limit}`
+  const cachedFn = unstable_cache(
+    async () => {
+      const [data, dataCount] = await prisma.$transaction([
+        prisma.order.findMany({
+          where: { userId: actor.id },
+          orderBy: { createdAt: "desc" },
+          take: safeLimit,
+          skip: (safePage - 1) * safeLimit,
+        }),
+        prisma.order.count({
+          where: { userId: actor.id },
+        }),
+      ])
 
-    const cachedFn = unstable_cache(
-      async () => {
-        const [data, dataCount] = await prisma.$transaction([
-          prisma.order.findMany({
-            where: { userId: session.user.id },
-            orderBy: { createdAt: "desc" },
-            take: limit,
-            skip: (page - 1) * limit,
-          }),
-          prisma.order.count({
-            where: { userId: session.user.id },
-          }),
-        ])
+      return {
+        data,
+        totalPages: Math.ceil(dataCount / safeLimit),
+      }
+    },
+    [cacheKey],
+    {
+      tags: [`orders-${actor.id}`],
+      revalidate: 60 * 30,
+    },
+  )
 
-        return {
-          data,
-          totalPages: Math.ceil(dataCount / limit),
-        }
+  return cachedFn()
+}
+
+export async function getSellerOrders({
+  limit = PAGE_SIZE,
+  page,
+}: {
+  limit?: number
+  page: number
+}) {
+  const seller = await assertPermission("seller.orders.view")
+  const safePage = Number.isFinite(page) ? Math.max(1, Math.trunc(page)) : 1
+  const safeLimit = Number.isFinite(limit)
+    ? Math.min(100, Math.max(1, Math.trunc(limit)))
+    : PAGE_SIZE
+  const [orders, totalCount] = await prisma.$transaction([
+    prisma.sellerOrder.findMany({
+      where: { sellerId: seller.id },
+      orderBy: { createdAt: "desc" },
+      take: safeLimit,
+      skip: (safePage - 1) * safeLimit,
+      select: {
+        id: true,
+        orderId: true,
+        createdAt: true,
+        status: true,
+        itemsPrice: true,
+        order: { select: { isPaid: true } },
+        items: {
+          select: {
+            id: true,
+            productId: true,
+            name: true,
+            slug: true,
+            qty: true,
+            price: true,
+          },
+        },
       },
-      [cacheKey],
-      {
-        tags: [`orders-${session.user.id}`],
-        revalidate: 60 * 30, // 30 minutes
-      },
-    )
+    }),
+    prisma.sellerOrder.count({ where: { sellerId: seller.id } }),
+  ])
 
-    return await cachedFn()
-  } catch (error) {
-    console.error("Failed to fetch orders:", error)
+  const data = orders.map((order) => {
+    const items = order.items.map((item) => ({
+      ...item,
+      price: Number(item.price),
+    }))
+
     return {
-      data: [],
-      totalPages: 0,
+      ...order,
+      id: order.orderId,
+      sellerOrderId: order.id,
+      isPaid: order.order.isPaid,
+      isDelivered: order.status === "delivered",
+      orderitems: items,
+      sellerItemsTotal: Number(order.itemsPrice),
     }
+  })
+
+  return {
+    data,
+    totalPages: Math.ceil(totalCount / safeLimit),
+  }
+}
+
+export async function updateSellerFulfillment(
+  sellerOrderId: string,
+  nextStatus: string,
+  trackingCode = "",
+) {
+  try {
+    const seller = await assertPermission("seller.orders.view")
+    const id = z.string().uuid().parse(sellerOrderId)
+    const status = z.nativeEnum(SellerOrderStatus).parse(nextStatus)
+    const tracking = z
+      .string()
+      .trim()
+      .max(100)
+      .regex(/^[A-Za-z0-9._/-]*$/)
+      .parse(trackingCode)
+
+    await prisma.$transaction(async (tx) => {
+      const current = await tx.sellerOrder.findFirst({
+        where: { id, sellerId: seller.id },
+        select: { id: true, orderId: true, status: true },
+      })
+      if (!current) throw new Error("Seller order not found")
+
+      const transitions: Record<SellerOrderStatus, SellerOrderStatus[]> = {
+        pending: [SellerOrderStatus.processing, SellerOrderStatus.cancelled],
+        processing: [SellerOrderStatus.shipped, SellerOrderStatus.cancelled],
+        shipped: [SellerOrderStatus.delivered],
+        delivered: [],
+        cancelled: [],
+      }
+      if (!transitions[current.status].includes(status)) {
+        throw new Error("This fulfillment status transition is not allowed")
+      }
+      if (status === SellerOrderStatus.shipped && !tracking) {
+        throw new Error("Add a tracking code before marking the order shipped")
+      }
+
+      await tx.sellerOrder.update({
+        where: { id: current.id },
+        data: { status },
+      })
+      await tx.shipment.upsert({
+        where: { sellerOrderId: current.id },
+        create: {
+          sellerOrderId: current.id,
+          trackingCode: tracking || null,
+          status:
+            status === SellerOrderStatus.shipped
+              ? "shipped"
+              : status === SellerOrderStatus.delivered
+                ? "delivered"
+                : "pending",
+          shippedAt:
+            status === SellerOrderStatus.shipped ? new Date() : null,
+          deliveredAt:
+            status === SellerOrderStatus.delivered ? new Date() : null,
+        },
+        update: {
+          trackingCode: tracking || undefined,
+          status:
+            status === SellerOrderStatus.shipped
+              ? "shipped"
+              : status === SellerOrderStatus.delivered
+                ? "delivered"
+                : "pending",
+          shippedAt:
+            status === SellerOrderStatus.shipped ? new Date() : undefined,
+          deliveredAt:
+            status === SellerOrderStatus.delivered ? new Date() : undefined,
+        },
+      })
+      await tx.orderStatusHistory.create({
+        data: {
+          sellerOrderId: current.id,
+          status,
+          note: "Seller updated fulfillment status",
+        },
+      })
+      await tx.auditLog.create({
+        data: {
+          actorId: seller.id,
+          action: "seller.order.fulfillment.updated",
+          targetType: "SellerOrder",
+          targetId: current.id,
+          metadata: { status },
+        },
+      })
+
+      if (status === SellerOrderStatus.delivered) {
+        const remainingSellerOrders = await tx.sellerOrder.count({
+          where: {
+            orderId: current.orderId,
+            status: { not: SellerOrderStatus.delivered },
+          },
+        })
+        if (remainingSellerOrders === 0) {
+          await tx.order.update({
+            where: { id: current.orderId },
+            data: { isDelivered: true, deliveredAt: new Date() },
+          })
+        }
+      }
+    })
+
+    revalidatePath("/seller/orders")
+    return { success: true, message: "Fulfillment status updated" }
+  } catch (error) {
+    return { success: false, message: formatError(error) }
   }
 }
 
@@ -314,6 +566,8 @@ export async function getOrderSummary(): Promise<{
   }>
   salesData: SalesDataType
 }> {
+  await assertPermission("dashboard.view")
+
   // Get counts for each resource
   const ordersCount = await prisma.order.count()
   const productsCount = await prisma.product.count()
@@ -363,7 +617,7 @@ export async function getOrderSummary(): Promise<{
 }
 
 // Get all orders
-export const getAllOrders = unstable_cache(
+const getAllOrdersCached = unstable_cache(
   async ({
     limit = PAGE_SIZE,
     page,
@@ -385,6 +639,8 @@ export const getAllOrders = unstable_cache(
     }>
     totalPages: number
   }> => {
+    const safeLimit = Math.min(100, Math.max(1, Math.trunc(limit)))
+    const safePage = Math.max(1, Math.trunc(page))
     const queryFilter: Prisma.OrderWhereInput =
       query && query !== "all"
         ? {
@@ -400,8 +656,8 @@ export const getAllOrders = unstable_cache(
     const data = await prisma.order.findMany({
       where: { ...queryFilter },
       orderBy: { createdAt: "desc" },
-      take: limit,
-      skip: (page - 1) * limit,
+      take: safeLimit,
+      skip: (safePage - 1) * safeLimit,
       include: { user: { select: { name: true } } },
     })
 
@@ -409,25 +665,45 @@ export const getAllOrders = unstable_cache(
 
     return {
       data,
-      totalPages: Math.ceil(dataCount / limit),
+      totalPages: Math.ceil(dataCount / safeLimit),
     }
   },
   ["all-orders"], // Dynamic cache key
   { revalidate: 60 * 60, tags: ["all-orders"] }, // Cache for 1 hour
 )
 
+export async function getAllOrders(params: {
+  limit?: number
+  page: number
+  query: string
+}) {
+  await assertPermission("orders.manage")
+  const page = Number.isFinite(params.page)
+    ? Math.max(1, Math.trunc(params.page))
+    : 1
+  const limit =
+    params.limit === undefined
+      ? PAGE_SIZE
+      : Number.isFinite(params.limit)
+        ? Math.min(100, Math.max(1, Math.trunc(params.limit)))
+        : PAGE_SIZE
+  const query = z.string().max(120).parse(params.query)
+  return getAllOrdersCached({ ...params, limit, page, query })
+}
+
 // Delete an order
 export async function deleteOrder(id: string): ActionReturn {
   try {
-    const selectedOrder = await getOrderById(id)
+    await assertPermission("orders.manage")
+    const selectedOrder = await getOrderById(z.string().uuid().parse(id))
     if (!selectedOrder) throw new Error("No order found to delete.")
 
     await prisma.order.delete({ where: { id: selectedOrder.id } })
 
     // ✅ Invalidate the cache for `getMyOrders` after deleting a order
-    revalidateTag(`orders-${selectedOrder.userId}`)
+    updateTag(`orders-${selectedOrder.userId}`)
     // ✅ Invalidate the cache for `getAllOrders` after deleting a order
-    revalidateTag("all-orders")
+    updateTag("all-orders")
 
     return {
       success: true,

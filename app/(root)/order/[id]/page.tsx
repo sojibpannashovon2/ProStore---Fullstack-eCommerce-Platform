@@ -1,17 +1,18 @@
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 
-import { auth } from "@/auth"
 import Stripe from "stripe"
 
 import type { ShippingAddress } from "@/types"
 
 import { getOrderById } from "@/lib/actions/order.actions"
+import { getCurrentUser, isAdminRole } from "@/lib/auth-guard"
 import { formatId } from "@/lib/utils"
 
 import { OrderItemCard } from "@/components/shared/cards/order-item-card"
 import { PaymentMethodCard } from "@/components/shared/cards/payment-method-card"
 import { ShippingAddressCard } from "@/components/shared/cards/shipping-address-card"
+import { TranslatedText } from "@/components/shared/translated-text"
 
 import { PaypalStripeCard } from "./_components/paypal-stripe-card"
 
@@ -32,10 +33,8 @@ export default async function OrderDetailsPage({
   const order = await getOrderById(id)
   if (!order) notFound()
 
-  const session = await auth()
-
-  // Redirect the user if they don't own the order
-  if (order.userId !== session?.user.id && session?.user.role !== "admin") {
+  const currentUser = await getCurrentUser()
+  if (!currentUser) {
     return redirect("/unauthorized")
   }
 
@@ -43,6 +42,8 @@ export default async function OrderDetailsPage({
     shippingAddress,
     orderitems,
     itemsPrice,
+    discountPrice,
+    couponCode,
     shippingPrice,
     taxPrice,
     totalPrice,
@@ -71,7 +72,9 @@ export default async function OrderDetailsPage({
 
   return (
     <>
-      <h1 className="py-4 text-2xl">Order {formatId(id)}</h1>
+      <h1 className="py-4 text-2xl">
+        <TranslatedText text="Order" /> {formatId(id)}
+      </h1>
       <div className="grid md:grid-cols-3 md:gap-5">
         <div className="col-span-2 space-y-4 overflow-x-auto">
           <ShippingAddressCard
@@ -95,12 +98,14 @@ export default async function OrderDetailsPage({
           <PaypalStripeCard
             orderId={id}
             itemsPrice={itemsPrice}
+            discountPrice={discountPrice.toString()}
+            couponCode={couponCode}
             shippingPrice={shippingPrice}
             taxPrice={taxPrice}
             totalPrice={totalPrice}
             isPaid={isPaid}
             paymentMethod={paymentMethod}
-            isAdmin={session?.user?.role === "admin" || false}
+            isAdmin={isAdminRole(currentUser.role)}
             stripeClientSecret={stripe_client_secret}
             isDelivered={isDelivered}
           />
@@ -109,6 +114,3 @@ export default async function OrderDetailsPage({
     </>
   )
 }
-
-// sb-aw4ak39157091@personal.example.com
-// {z0%k?qO

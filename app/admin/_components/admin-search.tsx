@@ -4,9 +4,12 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { Input } from "@/components/ui/input"
+import { translate } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 const AdminSearch = () => {
   const pathname = usePathname()
+  const { locale } = useLocale()
   const formActionUrl = pathname.includes("/admin/orders")
     ? "/admin/orders"
     : pathname.includes("/admin/users")
@@ -24,14 +27,14 @@ const AdminSearch = () => {
     <form action={formActionUrl} method="GET">
       <Input
         type="search"
-        placeholder="Search name..."
+        placeholder={translate(locale, "Search name...")}
         name="query"
         value={queryValue}
         onChange={(e) => setQueryValue(e.target.value)}
         className="md:w-[100px] lg:w-[300px]"
       />
       <button className="sr-only" type="submit">
-        Search
+        {translate(locale, "Search")}
       </button>
     </form>
   )

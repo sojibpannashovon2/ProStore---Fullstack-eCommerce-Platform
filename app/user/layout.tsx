@@ -16,12 +16,13 @@ export default function UserLayout({
       <div className="flex flex-col">
         <div className="container mx-auto border-b">
           <div className="flex h-16 items-center px-4">
-            <Link href="/" className="w-22">
+            <Link href="/" className="w-36">
               <Image
-                src="/images/logo.svg"
-                height={48}
-                width={48}
+                src="/images/kinora-logo.png"
+                height={150}
+                width={450}
                 alt={APP_NAME}
+                className="h-10 w-auto"
               />
             </Link>
             <MainNav links={USER_LINKS} className="mx-6" />

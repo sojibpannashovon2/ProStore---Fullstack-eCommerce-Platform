@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import { formatNumberWithDecimal } from "@/lib/utils"
 
-import { PAYMENT_METHODS } from "@/constants"
+import { PAYMENT_METHODS, USER_ROLES } from "@/constants"
 
 export const currency = z
   .string()
@@ -39,7 +39,7 @@ export const insertProductSchema = z.object({
   category: z.string().min(3, "Category must be at least 3 characters"),
   brand: z.string().min(3, "Brand must be at least 3 characters"),
   description: z.string().min(3, "Description must be at least 3 characters"),
-  stock: z.coerce.number(),
+  stock: z.coerce.number().int().nonnegative(),
   images: z.array(z.string()).min(1, "Product must have at least one image"),
   isFeatured: z.boolean(),
   banner: z.string().nullable(),
@@ -48,15 +48,15 @@ export const insertProductSchema = z.object({
 
 // Schema for updating products
 export const updateProductSchema = insertProductSchema.extend({
-  id: z.string().min(1, "Id is required"),
+  id: z.string().uuid("Id is required"),
 })
 
 // Cart Schemas
 export const cartItemSchema = z.object({
-  productId: z.string().min(1, "Product is required"),
+  productId: z.string().uuid("Product is required"),
   name: z.string().min(1, "Name is required"),
   slug: z.string().min(1, "Slug is required"),
-  qty: z.number().int().nonnegative("Quantity must be a positive number"),
+  qty: z.number().int().positive("Quantity must be a positive number"),
   image: z.string().min(1, "Image is required"),
   price: currency,
 })
@@ -65,6 +65,8 @@ export const cartItemSchema = z.object({
 export const insertCartSchema = z.object({
   items: z.array(cartItemSchema),
   itemsPrice: currency,
+  discountPrice: currency.default("0.00"),
+  couponCode: z.string().max(40).nullable().optional(),
   totalPrice: currency,
   shippingPrice: currency,
   taxPrice: currency,
@@ -79,6 +81,7 @@ export const shippingAddressSchema = z.object({
   city: z.string().min(3, "City must be at least 3 characters"),
   postalCode: z.string().min(3, "Postal code must be at least 3 characters"),
   country: z.string().min(3, "Country must be at least 3 characters"),
+  phone: z.string().optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
 })
@@ -95,18 +98,20 @@ export const paymentMethodSchema = z
 
 // Schema for inserting an order item
 export const insertOrderItemSchema = z.object({
-  productId: z.string(),
+  productId: z.string().uuid(),
   slug: z.string(),
   image: z.string(),
   name: z.string(),
   price: currency,
-  qty: z.number(),
+  qty: z.number().int().positive(),
 })
 
 // Schema for inserting order
 export const insertOrderSchema = z.object({
-  userId: z.string().min(1, "User is required"),
+  userId: z.string().uuid("User is required"),
   itemsPrice: currency,
+  discountPrice: currency.default("0.00"),
+  couponCode: z.string().max(40).nullable().optional(),
   shippingPrice: currency,
   taxPrice: currency,
   totalPrice: currency,
@@ -127,21 +132,21 @@ export const paymentResultSchema = z.object({
 // Schema for updating the user profile
 export const updateProfileSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  email: z.string().min(3, "Email must be at least 3 characters"),
+  email: z.string().email("Invalid email address"),
 })
 
 // Schema to update users
 export const updateUserSchema = updateProfileSchema.extend({
-  id: z.string().min(1, "ID is required"),
-  role: z.string().min(1, "Role is required"),
+  id: z.string().uuid("ID is required"),
+  role: z.enum(USER_ROLES),
 })
 
 // Schema to insert reviews
 export const insertReviewSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().min(3, "Description must be at least 3 characters"),
-  productId: z.string().min(1, "Product is required"),
-  userId: z.string().min(1, "User is required"),
+  productId: z.string().uuid("Product is required"),
+  userId: z.string().uuid("User is required"),
   rating: z.coerce
     .number()
     .int()

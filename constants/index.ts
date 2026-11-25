@@ -1,4 +1,4 @@
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Prostore"
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Kinora"
 export const APP_DESCRIPTION =
   process.env.NEXT_PUBLIC_APP_DESCRIPTION ||
   "A modern ecommerce store built with Next.js"
@@ -46,12 +46,13 @@ export const shippingAddressDefaultValues = {
   city: "",
   postalCode: "",
   country: "",
+  phone: "",
 }
 
 // payment method
 export const PAYMENT_METHODS = process.env.PAYMENT_METHODS
-  ? process.env.PAYMENT_METHODS.split(", ")
-  : ["PayPal", "Stripe", "CashOnDelivery"]
+  ? process.env.PAYMENT_METHODS.split(/\s*,\s*/)
+  : ["PayPal", "Stripe", "SSLCOMMERZ", "CashOnDelivery"]
 
 export const DEFAULT_PAYMENT_METHOD =
   process.env.DEFAULT_PAYMENT_METHOD || "PayPal"
@@ -61,6 +62,8 @@ export const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 12
 // nav-main
 export const ADMIN_LINKS = [
   { title: "Dashboard", href: "/admin/dashboard" },
+  { title: "Seller applications", href: "/admin/sellers/applications" },
+  { title: "Access control", href: "/admin/permissions" },
   {
     title: "Products",
     href: "/admin/products",
@@ -70,24 +73,34 @@ export const ADMIN_LINKS = [
     href: "/admin/orders",
   },
   {
+    title: "Coupons",
+    href: "/admin/coupons",
+  },
+  {
     title: "Users",
     href: "/admin/users",
   },
 ]
 
+export const SELLER_LINKS = [
+  { title: "Products", href: "/seller/products" },
+  { title: "Orders", href: "/seller/orders" },
+]
+
 export const USER_LINKS = [
   { title: "Profile", href: "/user/profile" },
   { title: "Orders", href: "/user/orders" },
+  { title: "Wishlist", href: "/user/wishlist" },
+  { title: "Become a Seller", href: "/seller-application" },
 ]
 
-export const USER_ROLES = process.env.USER_ROLES
-  ? process.env.USER_ROLES.split(", ")
-  : ["admin", "user"]
+export const USER_ROLES = ["admin", "seller", "customer"] as const
+export const ASSIGNABLE_USER_ROLES = ["seller", "customer"] as const
 
 export const userDefaultValues = {
   name: "",
   email: "",
-  role: USER_ROLES[1],
+  role: USER_ROLES[2],
 }
 
 // reviews

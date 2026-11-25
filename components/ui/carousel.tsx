@@ -10,6 +10,8 @@ import { ArrowLeft, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
+import { translate } from "@/lib/i18n/translations"
+import { useLocale } from "@/providers/locale-provider"
 
 type CarouselApi = UseEmblaCarouselType[1]
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>
@@ -53,6 +55,7 @@ function Carousel({
   children,
   ...props
 }: React.ComponentProps<"div"> & CarouselProps) {
+  const { locale } = useLocale()
   const [carouselRef, api] = useEmblaCarousel(
     {
       ...opts,
@@ -124,7 +127,7 @@ function Carousel({
         onKeyDownCapture={handleKeyDown}
         className={cn("relative", className)}
         role="region"
-        aria-roledescription="carousel"
+        aria-roledescription={translate(locale, "carousel")}
         data-slot="carousel"
         {...props}
       >
@@ -157,11 +160,12 @@ function CarouselContent({ className, ...props }: React.ComponentProps<"div">) {
 
 function CarouselItem({ className, ...props }: React.ComponentProps<"div">) {
   const { orientation } = useCarousel()
+  const { locale } = useLocale()
 
   return (
     <div
       role="group"
-      aria-roledescription="slide"
+      aria-roledescription={translate(locale, "slide")}
       data-slot="carousel-item"
       className={cn(
         "min-w-0 shrink-0 grow-0 basis-full",
@@ -180,6 +184,7 @@ function CarouselPrevious({
   ...props
 }: React.ComponentProps<typeof Button>) {
   const { orientation, scrollPrev, canScrollPrev } = useCarousel()
+  const { locale } = useLocale()
 
   return (
     <Button
@@ -189,7 +194,7 @@ function CarouselPrevious({
       className={cn(
         "absolute size-8 rounded-full",
         orientation === "horizontal"
-          ? "top-1/2 -left-12 -translate-y-1/2"
+          ? "top-1/2 left-3 -translate-y-1/2"
           : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
         className,
       )}
@@ -198,7 +203,7 @@ function CarouselPrevious({
       {...props}
     >
       <ArrowLeft />
-      <span className="sr-only">Previous slide</span>
+      <span className="sr-only">{translate(locale, "Previous slide")}</span>
     </Button>
   )
 }
@@ -210,6 +215,7 @@ function CarouselNext({
   ...props
 }: React.ComponentProps<typeof Button>) {
   const { orientation, scrollNext, canScrollNext } = useCarousel()
+  const { locale } = useLocale()
 
   return (
     <Button
@@ -219,7 +225,7 @@ function CarouselNext({
       className={cn(
         "absolute size-8 rounded-full",
         orientation === "horizontal"
-          ? "top-1/2 -right-12 -translate-y-1/2"
+          ? "top-1/2 right-3 -translate-y-1/2"
           : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
         className,
       )}
@@ -228,7 +234,7 @@ function CarouselNext({
       {...props}
     >
       <ArrowRight />
-      <span className="sr-only">Next slide</span>
+      <span className="sr-only">{translate(locale, "Next slide")}</span>
     </Button>
   )
 }

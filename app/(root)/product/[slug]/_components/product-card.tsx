@@ -21,17 +21,14 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   return (
     <article className={styles.card}>
       <div className={styles.profilePic}>
-        <Link
-          href={productHref}
-          className={styles.imageLink}
-        >
+        <Link href={productHref} className={styles.imageLink}>
           <Image
             src={product.images[0]}
             alt=""
             fill
             sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw"
             priority={priority}
-            className={styles.image}
+            className={`${styles.image} product-card-image`}
           />
           <span className="sr-only">
             <TranslatedText text={product.name} kind="productName" />
@@ -42,7 +39,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         <div className={styles.content}>
           <span className={styles.brand}>{product.brand}</span>
           <Link href={productHref} className={styles.nameLink}>
-            <h2 className={styles.name}>
+            <h2 className={`${styles.name} product-card-title`}>
               <TranslatedText text={product.name} kind="productName" />
             </h2>
           </Link>

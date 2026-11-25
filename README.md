@@ -2,7 +2,7 @@
 
 ProStore is a full-stack eCommerce website built with **Next.js 16.4.6**, **React 19**, **Prisma**, **TailwindCSS v4**, **Stripe**, **PayPal**, and more. It allows users to browse products, manage their carts, and complete purchases with various payment methods. The platform includes admin and seller dashboards.
 
-<img src="/public/images/screen.png" alt="Next.js Ecommerce" />
+![ProStore storefront](./public/images/screen.png)
 
 ## 🌟 Live Demo
 
@@ -16,6 +16,8 @@ ProStore is a full-stack eCommerce website built with **Next.js 16.4.6**, **Reac
 The marketplace data model, multi-seller order grouping, ownership boundaries,
 and transaction design are documented in
 [docs/marketplace-schema.md](./docs/marketplace-schema.md).
+The demo catalog uses distinct local product photos; see
+[the image credits](./public/images/product-images/IMAGE-CREDITS.md).
 
 ### 🛍️ Customer Experience
 
@@ -148,6 +150,15 @@ Follow these steps to get the application up and running locally:
    npm run db:seed
    ```
 
+   To add the expanded demo catalog with unique product images, run:
+
+   ```bash
+   npm run db:seed-products
+   ```
+
+   This seeder is additive: it does not clear unrelated products, and it
+   synchronizes prices and images for matching demo-product slugs.
+
 5. **Start the Development Server**
 
    For local development, run the following:
@@ -228,15 +239,4 @@ Here’s a brief explanation of each environment variable in your `.env` file:
 
 ## License
 
-MIT License
-
-Copyright (c) [2025] [Naser Almuhana]
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall
+MIT. See [LICENSE](./LICENSE) for details.

@@ -44,6 +44,18 @@ async function main() {
       skipDuplicates: true,
     })
 
+    await prisma.$transaction(
+      demoProducts.map((product) =>
+        prisma.product.updateMany({
+          where: { slug: product.slug },
+          data: {
+            images: product.images,
+            price: product.price,
+          },
+        }),
+      ),
+    )
+
     const finalCounts = await prisma.product.groupBy({
       by: ["category"],
       _count: { _all: true },
@@ -68,9 +80,51 @@ async function main() {
     }
 
     console.log(`Added ${result.count} demo products.`)
+    const productsWithIncorrectImages = await prisma.product.findMany({
+      where: { category: { in: Object.keys(DEMO_CATEGORY_TARGETS) } },
+      select: { slug: true, category: true, images: true },
+    })
+    const demoImagesBySlug = new Map(
+      demoProducts.map(({ slug, images }) => [slug, images[0]]),
+    )
+    const imagePathsByCategory = new Map<string, Set<string>>()
+    const incorrectImageCategories = new Set<string>()
+
+    for (const { slug, category, images } of productsWithIncorrectImages) {
+      const image = images[0]
+      const expectedImage = demoImagesBySlug.get(slug)
+      const categoryImages = imagePathsByCategory.get(category) ?? new Set()
+
+      if (!image || (expectedImage && image !== expectedImage)) {
+        incorrectImageCategories.add(category)
+      }
+      if (image && categoryImages.has(image)) {
+        incorrectImageCategories.add(category)
+      }
+
+      if (image) categoryImages.add(image)
+      imagePathsByCategory.set(category, categoryImages)
+    }
+
+    const missingDemoProducts = demoProducts.filter(
+      ({ slug }) =>
+        !productsWithIncorrectImages.some((product) => product.slug === slug),
+    )
+    if (missingDemoProducts.length > 0) {
+      throw new Error(
+        `Missing seeded demo products: ${missingDemoProducts.map(({ slug }) => slug).join(", ")}.`,
+      )
+    }
+
+    if (incorrectImageCategories.size > 0) {
+      throw new Error(
+        `Product images must be present, unique per category, and match the demo catalog in: ${[...incorrectImageCategories].join(", ")}.`,
+      )
+    }
+
     for (const [category, target] of Object.entries(DEMO_CATEGORY_TARGETS)) {
       console.log(
-        `${category}: ${finalCountsByCategory.get(category) ?? 0}/${target}`,
+        `${category}: ${finalCountsByCategory.get(category) ?? 0}/${target}, unique images verified`,
       )
     }
   } finally {

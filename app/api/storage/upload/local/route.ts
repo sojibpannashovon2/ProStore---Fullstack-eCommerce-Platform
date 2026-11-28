@@ -46,7 +46,21 @@ export async function PUT(request: Request) {
     }
 
     const fileName = `${crypto.randomUUID()}.${extension}`
-    await saveLocalUpload(fileName, Buffer.from(body))
+    try {
+      await saveLocalUpload(fileName, Buffer.from(body))
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException)?.code
+      if (code === "EROFS" || code === "EACCES" || code === "EPERM") {
+        return Response.json(
+          {
+            error:
+              "Server filesystem is read-only (Vercel). Configure S3-compatible object storage (AWS_ENDPOINT_URL_S3, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_BUCKET_NAME) to enable image uploads.",
+          },
+          { status: 503 },
+        )
+      }
+      throw error
+    }
 
     return Response.json({
       message: "Image uploaded",

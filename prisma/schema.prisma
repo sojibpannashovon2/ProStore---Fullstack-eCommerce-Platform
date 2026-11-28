@@ -598,6 +598,18 @@ model SecurityBlock {
   @@index([isActive], map: "SecurityBlock_isActive_idx")
 }
 
+model StoredImage {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String   @unique
+  contentType String
+  size        Int
+  data        Bytes    @db.ByteA
+  createdBy   String?  @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([createdBy], map: "StoredImage_createdBy_idx")
+}
+
 model Account {
   userId            String  @db.Uuid
   type              String

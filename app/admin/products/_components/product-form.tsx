@@ -69,11 +69,16 @@ function isLocalUploadImage(image: string) {
   return image.startsWith("/images/uploads/")
 }
 
+function isDbImage(image: string) {
+  return image.startsWith("/api/storage/images/")
+}
+
 function isSupportedImageReference(image: string) {
   return (
     image.startsWith("/images/") ||
     isUploadThingImage(image) ||
-    isNeonStorageImage(image)
+    isNeonStorageImage(image) ||
+    isDbImage(image)
   )
 }
 
@@ -174,7 +179,8 @@ export function ProductForm({
 
     setIsUploading(true)
     try {
-      // Try Neon S3 storage first; if not configured (503), upload locally.
+      // Try Neon S3 storage first; if not configured (503), fall back to
+      // database-backed storage (works on serverless), then local disk.
       let uploadedUrl: string
       try {
         const { data } = await axios.post<{
@@ -194,12 +200,21 @@ export function ProductForm({
           ? error.response?.status
           : undefined
         if (status !== 503) throw error
-        const { data } = await axios.put<{ imageUrl: string }>(
-          "/api/storage/upload/local",
-          file,
-          { headers: { "Content-Type": file.type } },
-        )
-        uploadedUrl = data.imageUrl
+        try {
+          const { data } = await axios.put<{ imageUrl: string }>(
+            "/api/storage/upload/db",
+            file,
+            { headers: { "Content-Type": file.type } },
+          )
+          uploadedUrl = data.imageUrl
+        } catch {
+          const { data } = await axios.put<{ imageUrl: string }>(
+            "/api/storage/upload/local",
+            file,
+            { headers: { "Content-Type": file.type } },
+          )
+          uploadedUrl = data.imageUrl
+        }
       }
       onUploaded(uploadedUrl)
       toast.success(translate(locale, "Image uploaded successfully"))
@@ -354,6 +369,10 @@ export function ProductForm({
                                     await axios.delete("/api/storage/upload", {
                                       data: { url: image },
                                     })
+                                  } else if (isDbImage(image)) {
+                                    await axios.delete("/api/storage/upload/db", {
+                                      data: { url: image },
+                                    })
                                   } else if (isLocalUploadImage(image)) {
                                     await axios.delete("/api/storage/upload/local", {
                                       data: { url: image },
@@ -468,6 +487,10 @@ export function ProductForm({
                         try {
                           if (isNeonStorageImage(banner)) {
                             await axios.delete("/api/storage/upload", {
+                              data: { url: banner },
+                            })
+                          } else if (isDbImage(banner)) {
+                            await axios.delete("/api/storage/upload/db", {
                               data: { url: banner },
                             })
                           } else if (isLocalUploadImage(banner)) {

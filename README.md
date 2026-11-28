@@ -1,247 +1,258 @@
-# ProStore - Fullstack eCommerce Platform
+# Kinora — Full-Stack eCommerce Platform
 
-ProStore is a full-stack eCommerce website built with **Next.js 16.4.6**, **React 19**, **Prisma**, **TailwindCSS v4**, **Stripe**, **PayPal**, and more. It allows users to browse products, manage their carts, and complete purchases with various payment methods. The platform includes admin and seller dashboards.
+Kinora is a production-grade, multi-vendor eCommerce platform built with **Next.js 16 (App Router, Turbopack)**, **React 19**, **Prisma**, **PostgreSQL (Neon)**, **TailwindCSS v4**, and **Auth.js (NextAuth v5)**. It includes a storefront, customer account area, seller onboarding, admin & SuperAdmin dashboards, role-based access control, audit logging, soft-delete, a custom AI shopping agent, and multiple payment gateways.
 
-![ProStore storefront](./public/images/screen.png)
+**Live:** https://pro-store-fullstack-e-commerce-plat.vercel.app
+**Repository:** https://github.com/sojibpannashovon2/ProStore---Fullstack-eCommerce-Platform
 
-## 🌟 Live Demo
+> Full documentation lives in [`docs/`](./docs/README.md). This README is the complete overview.
 
-- [Main Store](https://prostore-alpha-two.vercel.app/)
-- [Sample Product](https://prostore-alpha-two.vercel.app/product/polo-sporting-stretch-shirt)
-- [Product Search](https://prostore-alpha-two.vercel.app/search?q=all&category=Men%27s+Dress+Shirts&price=1-50&rating=all&sort=newest&page=1)
-- [Checkout Flow](https://prostore-alpha-two.vercel.app/cart) → [Shipping](https://prostore-alpha-two.vercel.app/shipping-address) → [Payment](https://prostore-alpha-two.vercel.app/payment-method) → [place-order](https://prostore-alpha-two.vercel.app/place-order)
+---
 
-## 🚀 Features
+## Table of Contents
 
-The marketplace data model, multi-seller order grouping, ownership boundaries,
-and transaction design are documented in
-[docs/marketplace-schema.md](./docs/marketplace-schema.md).
-The demo catalog uses distinct local product photos; see
-[the image credits](./public/images/product-images/IMAGE-CREDITS.md).
+1. [Features](#features)
+2. [Roles & Permissions](#roles--permissions)
+3. [Security](#security)
+4. [AI Shopping Agent (Kinora)](#ai-shopping-agent-kinora)
+5. [Tech Stack](#tech-stack)
+6. [Project Structure](#project-structure)
+7. [Getting Started](#getting-started)
+8. [Environment Variables](#environment-variables)
+9. [Database & Migrations](#database--migrations)
+10. [Seeded Accounts](#seeded-accounts)
+11. [Deployment](#deployment)
+12. [Scripts](#scripts)
+13. [Documentation Index](#documentation-index)
+14. [License](#license)
 
-### 🛍️ Customer Experience
+---
 
-| Feature                | Description                                                   |
-| ---------------------- | ------------------------------------------------------------- |
-| **Product Discovery**  | Search by name/category, filter by price/rating, sort options |
-| **Rich Product Pages** | Image galleries, reviews, availability status                 |
-| **Smart Cart**         | Guest cart → user cart on login, real-time price updates      |
-| **Checkout Flow**      | 3-step process: Shipping → Payment → Review                   |
-| **Order Tracking**     | View order status, payment confirmation, delivery updates     |
-| **Wishlist**           | Save products to a customer account                            |
+## Features
 
-### 💻 Admin Dashboard
+### Storefront
+- Product discovery with search, category/brand/price/rating filters and sorting.
+- Rich product pages: image galleries, reviews, stock status, seller info.
+- Guest cart that merges into the user cart on login; live price totals.
+- 3-step checkout: Shipping → Payment → Review, with order tracking.
+- Wishlist (private per user, soft-delete aware).
+- AI shopping assistant panel (bilingual English / Bangla).
 
-| Feature                | Description                                      |
-| ---------------------- | ------------------------------------------------ |
-| **Analytics**          | Sales charts, revenue metrics, customer insights |
-| **Product Management** | CRUD operations for product catalog              |
-| **Order Processing**   | Update payment/delivery status, view all orders  |
-| **User Management**    | View users, modify roles, manage access          |
+### Payments
+- **PayPal**, **Stripe**, **SSLCommerz** (bKash/Nagad, default), **Cash on Delivery**.
+- Server-validated coupons (dates, minimum spend, caps, usage limits).
 
-### 🏪 Seller Dashboard
+### Admin Dashboard
+- Analytics: revenue, orders, customers, products, sales chart.
+- Product management (view/create/edit/soft-delete) with approval workflow.
+- Order management, coupons, categories, seller applications.
+- User management with activity status, online/offline, login history, status changes.
+- **Deleted Items** page (SuperAdmin only) and **Security** page.
 
-- Sellers can create and manage only their own products.
-- Seller listings require administrator approval, and sellers can update fulfillment only for their own seller orders.
-- Seller onboarding requires administrator review and encrypted business-license, government-ID, and tax-document uploads.
-- Seller order views include only their own order items and status; buyer contact and shipping details are not exposed.
-- Super administrators control administrator roles and permissions. Seller access is granted only after application approval.
+### Seller Dashboard
+- Create/manage only their own products; stock & price control.
+- Process only their own seller orders; view own sales.
+- Onboarding via application + encrypted document uploads.
 
-### 💳 Payment Options
+### Bangla (বাংলা) Localization
+- Full UI translation (English / Bangla) with a locale switch.
+- Currency auto-converts: Bangla → ৳ BDT, English → $ USD (admin + storefront).
 
-| Method               | Features                                        |
-| -------------------- | ----------------------------------------------- |
-| **PayPal**           | Secure checkout, automatic payment confirmation |
-| **Stripe**           | Credit card processing, PCI-compliant           |
-| **SSLCommerz**       | Bangladesh checkout, including bKash and Nagad   |
-| **Cash on Delivery** | Admin-marked payment status                     |
+---
 
-Administrators with the `coupons.manage` permission can create and deactivate
-coupons from **Admin → Coupons**. Coupon dates, minimum spend, discount caps,
-and usage limits are validated on the server, and successful uses are recorded
-with the order transaction. The database also includes foundations for
-variant-level inventory, refunds, commissions, manual payouts, notifications,
-and audit logs; those workflows are not all fully implemented yet. Payment
-providers that require credentials remain subject to provider configuration.
+## Roles & Permissions
 
-### ✉️ Notifications
+Roles: **User (customer)**, **Seller**, **Admin**, **SuperAdmin**. Permissions are enforced **server-side** (see [`lib/rbac.ts`](./lib/rbac.ts) and [`lib/auth-guard.ts`](./lib/auth-guard.ts)).
 
-- Email receipts with order details
-- Toast notifications for all user actions
+| Capability | User | Seller | Admin | SuperAdmin |
+|---|:--:|:--:|:--:|:--:|
+| Browse / cart / checkout / reviews | ✓ | ✓ | ✓ | ✓ |
+| Own wishlist (view/add/remove) | ✓ | ✓ | ✓ | ✓ |
+| Create product | | ✓ | ✓ | ✓ |
+| Update own product | | ✓ | | |
+| Update any product | | | ✓ | ✓ |
+| Soft-delete product | | own | ✓ | ✓ |
+| Restore / permanent delete | | | | ✓ |
+| Reassign product ownership (with reason) | | | | ✓ |
+| View product edit history | | own (latest) | latest | full |
+| Manage users (status, role, delete) | | | users/sellers | everyone |
+| Assign Admin/SuperAdmin role | | | | ✓ |
+| View activity & login history | own | own | all | all |
+| View Deleted Items / restore / permanent | | | | ✓ |
+| Wishlist delete (any) | | | | ✓ |
+| Security (block IP, alerts) | | | ✓ | ✓ |
+| Audit logs | | | | ✓ |
 
-## 🛠️ Tech Stack
+**Role-change rules:** a role may only assign roles below its own; only SuperAdmin can create/change Admin or SuperAdmin; every change is written to `audit_logs`.
 
-### Frontend
+---
 
-- **Framework**: Next.js 16.4.6 (App Router, Turbopack) - React 19
-- **UI**: ShadCN components
-- **Styling**: TailwindCSS v4
-- **State**: React Server Components
-- **Forms**: React Hook Form + Zod + Uploadthing
+## Security
 
-### Backend
+- **Credentials auth** with bcrypt password hashing; passwords never returned by any API.
+- **Session invalidation**: `tokenVersion` + per-request status re-check — blocked/inactive/deleted users are rejected immediately and existing sessions are invalidated.
+- **IP blocking** (`SecurityBlock`) enforced at sign-in.
+- **Brute-force detection**: 5+ failed logins in 15 min → audit alert + in-app notification to SuperAdmins + **email alert** (Resend) to the SuperAdmin inbox.
+- **Rate limiting** on sign-in (10 / 15 min) and the AI endpoint (20 / min).
+- **IDOR protection**: users can only touch their own wishlist; sellers only their own products.
+- **Audit logging** with actor, role, old/new values, reason, IP and approximate location for every important action.
+- **Soft delete** everywhere (`is_deleted / deleted_at / deleted_by`); only SuperAdmin can view/restore/permanent-delete.
 
-- **ORM**: Prisma
-- **Database**: PostgreSQL (NeonDB)
-- **Auth**: Auth.js with cookie-backed JWT sessions and database-backed role checks
-- **Payments**: Stripe & PayPal & Cash on Delivery
-- **Emails**: Resend + React Email
+See [`docs/RBAC-AND-SECURITY.md`](./docs/RBAC-AND-SECURITY.md).
 
-## 🚀 Getting Started
+---
+
+## AI Shopping Agent (Kinora)
+
+A custom, deterministic bilingual agent (`lib/ai/custom-shopping-agent.ts`) powers the storefront assistant, with an optional local Ollama model when available. It supports 25+ intents including: recommendations, comparisons, budget/price-range, category & brand browse, top-rated, newest, in/out-of-stock, product details, similar items, deals, rating-threshold, category counts, gift finder, shipping/returns, support contact, order status, sort-by-name, cheapest-per-brand, care/how-to, and more.
+
+See [`docs/FEATURES.md`](./docs/FEATURES.md#ai-shopping-agent).
+
+---
+
+## Tech Stack
+
+**Frontend:** Next.js 16 (App Router, Turbopack), React 19, ShadCN/UI, TailwindCSS v4, React Hook Form + Zod.
+**Backend:** Prisma ORM, PostgreSQL (Neon), Auth.js (NextAuth v5, JWT + DB role checks), server actions & route handlers.
+**Payments:** Stripe, PayPal, SSLCommerz, COD.
+**Email:** Resend.
+**Storage:** Neon Object Storage (S3-compatible) for product images; local fallback.
+
+---
+
+## Project Structure
+
+```
+app/            # App Router: storefront, (auth), admin, seller, user, api
+components/     # Shared UI (header, footer, tables, dialogs, admin widgets)
+lib/            # Auth, RBAC, audit, activity, security, AI agent, actions, i18n
+lib/actions/    # Server actions (auth, users, products, orders, wishlist, security, admin-rbac)
+db/             # Prisma client, seeders, promote-super-admin
+prisma/         # schema.prisma + migrations
+scripts/        # migrate-production.mjs (prebuild)
+types/          # Shared types + next-auth augmentation
+docs/           # Full documentation
+proxy.ts        # NextAuth middleware (route protection)
+```
+
+---
+
+## Getting Started
 
 ### Prerequisites
+- Node.js 18+ (Node 20+ recommended)
+- A PostgreSQL database (Neon recommended)
+- Optional: Stripe/PayPal/SSLCommerz/Resend/Neon Object Storage credentials
 
-- **Node.js** (v18 or later)
-- **NeonDB Account** (Postgresql)
-- **Stripe & PayPal Developer Accounts** for payment integrations
-- **Resend Developer Account** for email notifications
+### Install
+```bash
+git clone https://github.com/sojibpannashovon2/ProStore---Fullstack-eCommerce-Platform.git
+cd ProStore---Fullstack-eCommerce-Platform
+npm install
+cp .env.example .env   # then fill in values
+```
 
-### Installation
+### Database
+```bash
+npm run db:generate        # generate Prisma client
+npx prisma migrate dev     # apply migrations (local)
+npm run db:seed            # optional sample data
+npm run db:seed-products   # optional expanded demo catalog
+npx tsx db/seed-rbac.ts    # seed roles, permissions, and one account per role
+```
 
-Follow these steps to get the application up and running locally:
+### Run
+```bash
+npm run dev     # http://localhost:3000
+npm run build   # production build (runs prebuild migration)
+npm run start   # serve production build
+```
 
-1. **Clone the Repository**
+---
 
-   Clone the repository to your local machine:
+## Environment Variables
 
-   ```bash
-   git clone https://github.com/your-username/prostore.git
-   cd prostore
-   ```
+Copy `.env.example` → `.env`. Key variables (full list in [`docs/ENVIRONMENT.md`](./docs/ENVIRONMENT.md)):
 
-2. **Install Dependencies**
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string (Neon) |
+| `AUTH_SECRET` | Token signing secret |
+| `AUTH_TRUST_HOST` | `true` to trust host (required on Vercel) |
+| `ENCRYPTION_KEY` | ≥32-char secret for encrypting sensitive data |
+| `NEXT_PUBLIC_USD_TO_BDT_RATE` | USD→BDT rate (default 123) |
+| `PAYMENT_METHODS` / `DEFAULT_PAYMENT_METHOD` | Enabled gateways / default |
+| `SSLCOMMERZ_STORE_ID` / `SSLCOMMERZ_STORE_PASSWORD` / `SSLCOMMERZ_SANDBOX` | SSLCommerz |
+| `PAYPAL_*`, `STRIPE_*` | PayPal / Stripe |
+| `AWS_*` (Neon Object Storage) | Product image storage |
+| `RESEND_API_KEY`, `SENDER_EMAIL` | Email + security alerts |
+| `SUPER_ADMIN_ALERT_EMAIL`, `ALERT_FROM_EMAIL` | Security alert recipient/from |
+| `OLLAMA_BASE_URL`, `OLLAMA_MODEL` | Optional local AI model |
 
-   Install the required dependencies using npm or yarn:
+---
 
-   ```bash
-   npm install
-   or
-   yarn install
-   ```
+## Database & Migrations
 
-3. **Set Up Environment Variables**
+Models include `User`, `Product`, `Wishlist`/`WishlistItem`, `Order`, `OrderItem`, `SellerOrder`, `Payment`, `Review`, `AuditLog`, `LoginHistory`, `SecurityBlock`, RBAC tables (`Role`, `Permission`, `RolePermission`), and more. See [`docs/DATABASE.md`](./docs/DATABASE.md).
 
-   Copy the .env.example file to .env and fill in your environment variables as described below:
+- Soft-delete + audit fields on users, products, wishlist items.
+- Indexes on `is_deleted`, `deleted_at`, `deleted_by`, `users(status)`, `users(last_active_at)`, `login_history(user_id, login_at)`, `audit_logs(target_type, target_id)`.
+- On Vercel, `prebuild` runs `prisma migrate deploy` (non-fatal on transient DB connectivity errors).
 
-   ```bash
-   cp .env.example .env
-   ```
+---
 
-   Set `DATABASE_URL` to a PostgreSQL connection string, provide an `AUTH_SECRET`, and set a strong `ENCRYPTION_KEY` of at least 32 characters before starting the app. Set `SUPER_ADMIN_EMAIL` to an existing account email, then run `npm run db:promote-super-admin` once to bootstrap super-administrator access. Payment, upload, and email credentials are only needed for the corresponding integrations. For more details, see the [Explanation of Environment Variables](#explanation-of-environment-variables) section.
-   <br>
+## Seeded Accounts
 
-4. **Run Database Migrations**
+Created by `db/seed-rbac.ts` (change passwords after first login):
 
-   Run Prisma migrations to set up the database schema:
+| Role | Email | Password |
+|---|---|---|
+| SuperAdmin | `mdarifur554@gmail.com` | (your own) |
+| Admin | `admin@kinora.com` | `Admin@2026` |
+| Seller | `seller@kinora.com` | `Seller@2026` |
+| User | `customer@kinora.com` | `Customer@2026` |
 
-   ```bash
-   npm run db:generate
-   ```
+---
 
-   and then migrate
+## Deployment
 
-   ```bash
-   npx prisma migrate dev
-   ```
+Deploy to **Vercel** (project already linked). Set environment variables in the Vercel dashboard, then:
 
-   If you'd like to seed the database with sample data (optional), run:
+```bash
+vercel --prod
+```
 
-   ```bash
-   npm run db:seed
-   ```
+The production build applies pending Prisma migrations before building. See [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
 
-   To add the expanded demo catalog with unique product images, run:
+---
 
-   ```bash
-   npm run db:seed-products
-   ```
+## Scripts
 
-   This seeder is additive: it does not clear unrelated products, and it
-   synchronizes prices and images for matching demo-product slugs.
+| Script | Description |
+|---|---|
+| `npm run dev` | Dev server (Turbopack) |
+| `npm run build` | Production build (prebuild migration + `next build`) |
+| `npm run start` | Serve production build |
+| `npm run lint` | ESLint |
+| `npm run db:generate` | Prisma client generate |
+| `npm run db:studio` | Prisma Studio |
+| `npm run db:seed` / `db:seed-products` | Seed data |
+| `npm run db:promote-super-admin` | Bootstrap SuperAdmin from `SUPER_ADMIN_EMAIL` |
 
-5. **Start the Development Server**
+---
 
-   For local development, run the following:
+## Documentation Index
 
-   ```bash
-   npm run dev
-   ```
+- [Overview](./docs/README.md)
+- [Architecture](./docs/ARCHITECTURE.md)
+- [Features](./docs/FEATURES.md)
+- [RBAC & Security](./docs/RBAC-AND-SECURITY.md)
+- [Database](./docs/DATABASE.md)
+- [Environment](./docs/ENVIRONMENT.md)
+- [Deployment](./docs/DEPLOYMENT.md)
 
-   Your app will be available at http://localhost:3000
-   <br>
-
-6. **Build and Deploy for Production**
-
-   To build the app for production:
-
-   ```bash
-   npm run build
-   ```
-
-   On Vercel Production builds, pending Prisma migrations are applied before
-   the Next.js build. The migration preflight stops if existing user roles
-   could be downgraded; review and back up the production database before
-   deploying schema changes.
-
-   After building, you can start the app in production mode:
-
-   ```bash
-   npm run start
-   ```
-
-   This will serve the app optimized for production.
-
-## Explanation of Environment Variables
-
-Here’s a brief explanation of each environment variable in your `.env` file:
-
-### General Configuration
-
-- `NEXT_PUBLIC_APP_NAME`: Name of your app (public-facing).
-- `NEXT_PUBLIC_APP_DESCRIPTION`: Description of your app (public-facing).
-- `NEXT_PUBLIC_SERVER_URL`: URL of your server (base URL for API requests).
-
-### Authentication & Security
-
-- `AUTH_SECRET`: A secret used for signing and verifying tokens.
-- `AUTH_TRUST_HOST`: Used to trust the host (usually set to true or a specific domain).
-- `ENCRYPTION_KEY`: Key used for encrypting sensitive data.
-
-### Database Configuration
-
-- `DATABASE_URL`: The connection string to your database (e.g., PostgreSQL, MySQL, etc.).
-
-### Payment Configuration
-
-- `PAYMENT_METHODS`: List of accepted payment methods (e.g., PayPal, Stripe).
-- `DEFAULT_PAYMENT_METHOD`: The default payment method to be used in the app.
-
-### PayPal Integration
-
-- `PAYPAL_API_URL`: The PayPal API URL to communicate with.
-- `PAYPAL_CLIENT_ID`: Your PayPal client ID for OAuth integration.
-- `PAYPAL_APP_SECRET`: The secret associated with your PayPal app for authentication.
-
-### Stripe Integration
-
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: The publishable Stripe key, exposed on the client side.
-- `STRIPE_SECRET_KEY`: The secret Stripe key, used for server-side authentication.
-
-### File Upload
-
-- `UPLOADTHING_TOKEN`: Token used for authentication with your file upload service.
-- `UPLOADTHING_SECRET`: Secret key for file uploads.
-- `UPLOADTHING_APPID`: The app ID for UploadThing.
-
-### Email Service
-
-- `RESEND_API_KEY`: API key for sending emails using Resend.
-- `SENDER_EMAIL`: The email address used to send notifications and receipts.
-
-### Other Configuration
-
-- `NEXT_PUBLIC_TARGET_DATE`: A public-facing target date (likely for countdown timers or promotions).
+---
 
 ## License
 
-MIT. See [LICENSE](./LICENSE) for details.
+MIT. See [LICENSE](./LICENSE).

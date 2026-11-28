@@ -5,8 +5,6 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { UserIcon } from "lucide-react"
 
-import { ADMIN_LINKS } from "@/constants"
-
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -68,10 +66,15 @@ export function UserButton() {
             </Link>
           </DropdownMenuItem>
 
-          {session?.user?.role === "admin" && (
+          {(session?.user?.role === "admin" ||
+            session?.user?.role === "super_admin") && (
             <DropdownMenuItem>
-              <Link href={ADMIN_LINKS[0].href} className="w-full">
-                <TranslatedText text="Admin" />
+              <Link href="/admin/dashboard" className="w-full">
+                {session?.user?.role === "super_admin" ? (
+                  <TranslatedText text="SuperAdmin Dashboard" />
+                ) : (
+                  <TranslatedText text="Admin Dashboard" />
+                )}
               </Link>
             </DropdownMenuItem>
           )}

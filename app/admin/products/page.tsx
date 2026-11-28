@@ -37,7 +37,7 @@ interface AdminProductsPageProps {
 }
 
 export default async function AdminProductsPage(props: AdminProductsPageProps) {
-  await requireAdmin()
+  const actor = await requireAdmin()
 
   const locale = await getServerLocale()
   const searchParams = await props.searchParams
@@ -83,10 +83,14 @@ export default async function AdminProductsPage(props: AdminProductsPageProps) {
             <TableHead><TranslatedText text="STOCK" /></TableHead>
             <TableHead><TranslatedText text="RATING" /></TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Created by</TableHead>
-            <TableHead>Updated</TableHead>
-            <TableHead>Updated by</TableHead>
+            {actor.role === "super_admin" && (
+              <>
+                <TableHead>Created</TableHead>
+                <TableHead>Created by</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead>Updated by</TableHead>
+              </>
+            )}
             <TableHead className="w-[100px]"><TranslatedText text="ACTIONS" /></TableHead>
           </TableRow>
         </TableHeader>
@@ -123,19 +127,26 @@ export default async function AdminProductsPage(props: AdminProductsPageProps) {
               <TableCell className="text-xs">
                 {formatDateTime(product.createdAt).dateOnly}
               </TableCell>
-              <TableCell className="text-xs">
-                {(product as { createdBy?: string | null }).createdBy
-                  ? formatId((product as { createdBy?: string | null }).createdBy as string)
-                  : "—"}
-              </TableCell>
-              <TableCell className="text-xs">
-                {formatDateTime(product.updatedAt).dateTime}
-              </TableCell>
-              <TableCell className="text-xs">
-                {(product as { updatedBy?: string | null }).updatedBy
-                  ? formatId((product as { updatedBy?: string | null }).updatedBy as string)
-                  : "—"}
-              </TableCell>
+              {actor.role === "super_admin" && (
+                <>
+                  <TableCell className="text-xs">
+                    {formatDateTime(product.createdAt).dateOnly}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {(product as { createdBy?: string | null }).createdBy
+                      ? formatId((product as { createdBy?: string | null }).createdBy as string)
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {formatDateTime(product.updatedAt).dateTime}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {(product as { updatedBy?: string | null }).updatedBy
+                      ? formatId((product as { updatedBy?: string | null }).updatedBy as string)
+                      : "—"}
+                  </TableCell>
+                </>
+              )}
               <TableCell className="flex gap-1">
                 {!product.isApproved && !product.isArchived && (
                   <ApprovalButton productId={product.id} />

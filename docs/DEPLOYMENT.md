@@ -17,7 +17,7 @@ vercel --prod
 
 ### Notes
 - `AUTH_TRUST_HOST=true` is required behind Vercel's proxy.
-- Product images use Neon Object Storage (S3). Local uploads are a dev fallback and do not persist on serverless.
+- Product image uploads resolve in this order: **Neon Object Storage (S3)** if the `AWS_*` vars are set, otherwise **database-backed storage** (`StoredImage` table, served from `/api/storage/images/...`) which persists on serverless with no extra config, and finally **local disk** as a dev-only fallback that does not persist on Vercel.
 - The AI agent uses the built-in deterministic engine in production (no Ollama); set `OLLAMA_*` only if a local model is reachable.
 
 ## Local production build

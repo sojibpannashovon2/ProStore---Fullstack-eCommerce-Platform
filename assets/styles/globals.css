@@ -198,6 +198,53 @@ html.dark .upload-field .text-white {
   animation: product-text-rise 500ms ease-out both;
 }
 
+/* Dashboard table animations (pure CSS, no JS) */
+@keyframes rowSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes progressFill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes emojiFloat {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-2px) scale(1.12);
+  }
+}
+
+@utility animate-row-slide-in {
+  animation: rowSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility animate-progress-fill {
+  transform-origin: left;
+  animation: progressFill 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility animate-emoji-float {
+  animation: emojiFloat 2.2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .product-card-3d,
   .product-card-image {
@@ -211,6 +258,12 @@ html.dark .upload-field .text-white {
 
   .product-card-title,
   .product-carousel-title {
+    animation: none;
+  }
+
+  .animate-row-slide-in,
+  .animate-progress-fill,
+  .animate-emoji-float {
     animation: none;
   }
 }

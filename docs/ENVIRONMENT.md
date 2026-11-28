@@ -39,10 +39,13 @@ Copy `.env.example` → `.env`. Values marked public are exposed to the browser.
 |---|---|
 | `NEXT_PUBLIC_USD_TO_BDT_RATE` | USD→BDT rate (default 123) |
 
-## Storage (Neon Object Storage, S3-compatible)
+## Storage (images)
+Product images are stored in the database (`StoredImage` table) by default and served from `/api/storage/images/...` — no configuration required, works on serverless.
+
+Optional: set the S3-compatible Neon Object Storage vars below to store images in a bucket instead. If unset, uploads fall back to database storage, then local disk (dev only).
 | Variable | Description |
 |---|---|
-| `AWS_ENDPOINT_URL_S3` | S3 endpoint |
+| `AWS_ENDPOINT_URL_S3` | S3 endpoint (HTTPS) |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Credentials |
 | `AWS_REGION` | Region |
 | `AWS_BUCKET_NAME` | Bucket (e.g. product-images) |

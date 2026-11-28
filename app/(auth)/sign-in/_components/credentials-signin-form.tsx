@@ -1,12 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
-import { useActionState, useEffect } from "react"
-import { useFormStatus } from "react-dom"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useState } from "react"
+import { signIn } from "next-auth/react"
 import { toast } from "sonner"
-
-import { signInWithCredentials } from "@/lib/actions/auth.actions"
 
 import { signInDefaultValues } from "@/constants"
 
@@ -18,35 +16,52 @@ import { translateMessage } from "@/lib/i18n/translations"
 import { useLocale } from "@/providers/locale-provider"
 
 const CredentialsSignInForm = () => {
-  const [data, action] = useActionState(signInWithCredentials, {
-    success: false,
-    message: "",
-  })
-
+  const router = useRouter()
   const searchParams = useSearchParams()
   const { locale } = useLocale()
   const callbackUrl = searchParams.get("callbackUrl") || "/"
   const signUpHref = `/sign-up?callbackUrl=${encodeURIComponent(callbackUrl)}`
+  const [pending, setPending] = useState(false)
 
-  useEffect(() => {
-    if (data && !data.success) {
-      toast.error(translateMessage(locale, data.message))
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (pending) return
+
+    const formData = new FormData(event.currentTarget)
+    const email = String(formData.get("email") || "")
+    const password = String(formData.get("password") || "")
+
+    setPending(true)
+    const toastId = toast.loading(translateMessage(locale, "Signing In..."))
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
+
+      if (!result || result.error) {
+        toast.error(translateMessage(locale, "Invalid email or password"), {
+          id: toastId,
+        })
+        setPending(false)
+        return
+      }
+
+      toast.success(translateMessage(locale, "Signed in successfully"), {
+        id: toastId,
+      })
+      router.push(callbackUrl)
+    } catch {
+      toast.error(translateMessage(locale, "Invalid email or password"), {
+        id: toastId,
+      })
+      setPending(false)
     }
-  }, [data, locale])
-
-  const SignInButton = () => {
-    const { pending } = useFormStatus()
-
-    return (
-      <Button disabled={pending} className="w-full" variant="default">
-        {pending ? <TranslatedText text="Signing In..." /> : <TranslatedText text="Sign In" />}
-      </Button>
-    )
   }
 
   return (
-    <form action={action}>
-      <input type="hidden" name="callbackUrl" value={callbackUrl} />
+    <form onSubmit={handleSubmit}>
       <div className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="email"><TranslatedText text="Email" /></Label>
@@ -66,12 +81,15 @@ const CredentialsSignInForm = () => {
             name="password"
             type="password"
             required
+            minLength={6}
             autoComplete="password"
             defaultValue={signInDefaultValues.password}
           />
         </div>
         <div>
-          <SignInButton />
+          <Button disabled={pending} className="w-full" variant="default" type="submit">
+            {pending ? <TranslatedText text="Signing In..." /> : <TranslatedText text="Sign In" />}
+          </Button>
         </div>
 
         <div className="text-muted-foreground text-center text-sm">

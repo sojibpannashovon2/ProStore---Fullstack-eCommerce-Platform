@@ -275,6 +275,37 @@ export function runCustomShoppingAgent(
     }
   }
 
+  // 5b) Multi-criteria: category + price (e.g. "electronics under 100")
+  const catForMulti =
+    uniqueCategories.find((c) => c && query.includes(c.toLowerCase())) ||
+    matched[0]?.category
+  const multiPrice = query.match(/(\d+(?:\.\d+)?)/)
+  if (
+    catForMulti &&
+    multiPrice &&
+    /(under|below|less than|within|up to|কম|নিচে|সীমা)/i.test(query)
+  ) {
+    const cap = parseFloat(multiPrice[1])
+    const filtered = catalog
+      .filter(
+        (p) =>
+          (p.category === catForMulti || matched.some((m) => m.id === p.id)) &&
+          toNumber(p.price) <= cap,
+      )
+      .slice(0, 6)
+    const content = isBn
+      ? `**${catForMulti}** ক্যাটাগরিতে ${formatPrice(cap, locale)} এর নিচে পাওয়া পণ্যসমূহ:`
+      : `Products in **${catForMulti}** under ${formatPrice(cap, locale)}:`
+    return {
+      content: filtered.length
+        ? `${content}\n\n${listBlock(filtered)}`
+        : isBn
+          ? "এই শর্তে কোনো পণ্য পাওয়া যায়নি।"
+          : "No products match those filters.",
+      products: suggestionsOf(filtered.length ? filtered : featured),
+    }
+  }
+
   // 6) Budget (under / below / less than X)
   const isPriceQuery =
     /(price|cost|cheap|expensive|under|below|budget|less than|দাম|সস্তা|দামী|কম|বাজেট)/i.test(
@@ -446,6 +477,110 @@ export function runCustomShoppingAgent(
       ? `🎲 আপনার জন্য একটি সারপ্রাইজ পণ্য: **${pick?.name ?? ""}**`
       : `🎲 A surprise pick for you: **${pick?.name ?? ""}**`
     return { content, products: pick ? suggestionsOf([pick]) : [] }
+  }
+
+  // 17b) Deals / offers
+  if (/(deals?|offers?|discount|sale|clearance|অফার|ছাড়|ডিসকাউন্ট|বিক্রি)/i.test(query)) {
+    const deals = catalog.filter((p) => p.isFeatured || p.stock > 0).slice(0, 5)
+    const content = isBn
+      ? "🔥 আমাদের চলতি অফার ও ফিচার্ড পণ্যগুলো:"
+      : "🔥 Our current deals and featured offers:"
+    return { content: `${content}\n\n${listBlock(deals)}`, products: suggestionsOf(deals) }
+  }
+
+  // 17c) Rating threshold (e.g. "4 star and above")
+  const ratingMatch = query.match(/(\d(?:\.\d+)?)\s*(?:\+|star|stars|★|রেটিং)/i)
+  if (ratingMatch) {
+    const min = parseFloat(ratingMatch[1])
+    const rated = catalog
+      .filter((p) => toNumber(p.rating) >= min)
+      .sort((a, b) => toNumber(b.rating) - toNumber(a.rating))
+      .slice(0, 5)
+    const content = isBn
+      ? `⭐ রেটিং ${min}+ থাকা পণ্যগুলো:`
+      : `⭐ Products rated ${min}+ :`
+    return {
+      content: rated.length ? `${content}\n\n${listBlock(rated)}` : content,
+      products: suggestionsOf(rated.length ? rated : featured),
+    }
+  }
+
+  // 17d) Category count ("how many in electronics")
+  const catForCount =
+    uniqueCategories.find((c) => c && query.includes(c.toLowerCase())) ||
+    matched[0]?.category
+  if (catForCount && /(how many|count|total|কতটি|কতটা)/i.test(query)) {
+    const items = catalog.filter((p) => p.category === catForCount)
+    const content = isBn
+      ? `**${catForCount}** ক্যাটাগরিতে মোট **${items.length}** টি পণ্য আছে।`
+      : `There are **${items.length}** products in **${catForCount}**.`
+    return { content, products: suggestionsOf(items.slice(0, 4)) }
+  }
+
+  // 17e) Gift finder
+  if (/(gift|present|উপহার|গিফট)/i.test(query)) {
+    const gifts = inStock.slice(0, 5)
+    const content = isBn
+      ? "🎁 উপহারের জন্য আমাদের কিছু জনপ্রিয় পণ্য:"
+      : "🎁 Some popular gift ideas from our store:"
+    return { content: `${content}\n\n${listBlock(gifts)}`, products: suggestionsOf(gifts) }
+  }
+
+  // 17f) Shipping / returns policy
+  if (/(shipping|delivery|return|refund|exchange|ডেলিভারি|শিপিং|রিটার্ন|রিফান্ড)/i.test(query)) {
+    const content = isBn
+      ? "আমাদের ডেলিভারি ও রিটার্ন সংক্রান্ত নীতিমালা চেকআউট ও অর্ডার পেজে বিস্তারিত দেওয়া আছে। নির্দিষ্ট প্রশ্নে সাপোর্ট টিমের সাথে যোগাযোগ করুন।"
+      : "Shipping and return policies are shown at checkout and on your order page. For specific questions, please contact our support team."
+    return { content, products: [] }
+  }
+
+  // 17g) Contact / support
+  if (/(contact|support|hotline|phone number|যোগাযোগ|সাপোর্ট|হেল্পলাইন)/i.test(query)) {
+    const content = isBn
+      ? "সাহায্যের জন্য আমাদের সাপোর্ট টিমের সাথে যোগাযোগ করুন — support@kinora.com। আমরা সাধারণত ২৪ ঘণ্টার মধ্যে উত্তর দিই।"
+      : "Reach our support team at support@kinora.com — we usually reply within 24 hours."
+    return { content, products: [] }
+  }
+
+  // 17h) Order status
+  if (/(order status|where is my order|track|my orders?|অর্ডার|ট্র্যাক)/i.test(query)) {
+    const content = isBn
+      ? "আপনার অর্ডারের অবস্থা দেখতে 'Order History' পেজে যান অথবা প্রোফাইল থেকে অর্ডারে ক্লিক করুন।"
+      : "To check your order status, open 'Order History' or click an order from your profile."
+    return { content, products: [] }
+  }
+
+  // 17i) Sort by name
+  if (/(sort|a[\s-]?z|alphabetical|নাম অনুযায়ী|সাজান)/i.test(query)) {
+    const sorted = [...catalog]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, 6)
+    const content = isBn ? "🔤 নাম অনুসারে সাজানো পণ্যগুলো:" : "🔤 Products sorted by name:"
+    return { content: `${content}\n\n${listBlock(sorted)}`, products: suggestionsOf(sorted) }
+  }
+
+  // 17j) Cheapest per brand
+  if (/(which brand|per brand|brand is|ব্র্যান্ডের)/i.test(query) && !brandHit) {
+    const byBrand = new Map<string, RawProduct>()
+    for (const p of catalog) {
+      const cur = byBrand.get(p.brand)
+      if (!cur || toNumber(p.price) < toNumber(cur.price)) byBrand.set(p.brand, p)
+    }
+    const cheapest = [...byBrand.values()]
+      .sort((a, b) => toNumber(a.price) - toNumber(b.price))
+      .slice(0, 5)
+    const content = isBn
+      ? "🏷️ প্রতি ব্র্যান্ডের সবচেয়ে সস্তা পণ্য:"
+      : "🏷️ Cheapest product per brand:"
+    return { content: `${content}\n\n${listBlock(cheapest)}`, products: suggestionsOf(cheapest) }
+  }
+
+  // 17k) Care / how-to
+  if (/(care|how to use|maintain|কিভাবে ব্যবহার|যত্ন)/i.test(query)) {
+    const content = isBn
+      ? "পণ্যের যত্ন ও ব্যবহারের নির্দেশনা সাধারণত পণ্যের বিবরণে উল্লেখ থাকে। নির্দিষ্ট কোনো পণ্যের নাম বললে আমি সাহায্য করতে পারি।"
+      : "Care and usage instructions are usually listed in the product description. Tell me a specific product name and I can help."
+    return { content, products: suggestionsOf(featured) }
   }
 
   // 18) Recommendation / featured

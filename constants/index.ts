@@ -105,7 +105,7 @@ export const USER_LINKS = [
   { title: "Become a Seller", href: "/seller-application" },
 ]
 
-export const USER_ROLES = ["admin", "seller", "customer"] as const
+export const USER_ROLES = ["super_admin", "admin", "seller", "customer"] as const
 export const ASSIGNABLE_USER_ROLES = ["seller", "customer"] as const
 
 export const userDefaultValues = {

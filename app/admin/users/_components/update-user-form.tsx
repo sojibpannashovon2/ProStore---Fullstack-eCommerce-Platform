@@ -11,8 +11,6 @@ import type { UpdateUser } from "@/types"
 import { updateUser } from "@/lib/actions/users.actions"
 import { updateUserSchema } from "@/lib/validators"
 
-import { ASSIGNABLE_USER_ROLES } from "@/constants"
-
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -123,7 +121,7 @@ export function UpdateUserForm({ user }: UpdateUserFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {ASSIGNABLE_USER_ROLES.map((role) => (
+                    {(["super_admin", "admin", "seller", "customer"] as const).map((role) => (
                       <SelectItem key={role} value={role}>
                         <TranslatedText text={role.charAt(0).toUpperCase() + role.slice(1)} />
                       </SelectItem>

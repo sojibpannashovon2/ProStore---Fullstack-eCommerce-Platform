@@ -2,9 +2,9 @@
 
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { useActionState } from "react"
-
+import { useActionState, useEffect } from "react"
 import { useFormStatus } from "react-dom"
+import { toast } from "sonner"
 
 import { signInWithCredentials } from "@/lib/actions/auth.actions"
 
@@ -27,6 +27,12 @@ const CredentialsSignInForm = () => {
   const { locale } = useLocale()
   const callbackUrl = searchParams.get("callbackUrl") || "/"
   const signUpHref = `/sign-up?callbackUrl=${encodeURIComponent(callbackUrl)}`
+
+  useEffect(() => {
+    if (data && !data.success) {
+      toast.error(translateMessage(locale, data.message))
+    }
+  }, [data, locale])
 
   const SignInButton = () => {
     const { pending } = useFormStatus()
@@ -67,12 +73,6 @@ const CredentialsSignInForm = () => {
         <div>
           <SignInButton />
         </div>
-
-        {data && !data.success && (
-          <div className="text-destructive text-center">
-            {translateMessage(locale, data.message)}
-          </div>
-        )}
 
         <div className="text-muted-foreground text-center text-sm">
           <TranslatedText text="Don't have an account?" />{" "}

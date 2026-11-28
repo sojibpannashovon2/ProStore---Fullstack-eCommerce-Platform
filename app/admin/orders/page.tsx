@@ -3,6 +3,7 @@ import Link from "next/link"
 
 import { deleteOrder, getAllOrders } from "@/lib/actions/order.actions"
 import { requireAdmin } from "@/lib/auth-guard"
+import { getServerLocale } from "@/lib/i18n/locale"
 import { formatCurrency, formatDateTime, formatId } from "@/lib/utils"
 
 import { AppPagination } from "@/components/shared/app-pagination"
@@ -28,6 +29,7 @@ interface AdminOrdersPageProps {
 
 export default async function AdminOrdersPage(props: AdminOrdersPageProps) {
   await requireAdmin()
+  const locale = await getServerLocale()
   const { page = "1", query: searchText = "" } = await props.searchParams
 
   const orders = await getAllOrders({
@@ -73,7 +75,7 @@ export default async function AdminOrdersPage(props: AdminOrdersPageProps) {
                   </TableCell>
                   <TableCell>{order.user.name}</TableCell>
                   <TableCell>
-                    {formatCurrency(order.totalPrice, "en", "USD", 2)}
+                    {formatCurrency(order.totalPrice, locale, "locale", 2)}
                   </TableCell>
                   <TableCell>
                     {order.isPaid && order.paidAt

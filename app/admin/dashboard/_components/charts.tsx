@@ -36,7 +36,7 @@ export function Charts({ data: { salesData } }: ChartsProps) {
           tickLine={false}
           axisLine={false}
           tickFormatter={(value) =>
-            formatCurrency(Number(value), "en", "USD", 2)
+            formatCurrency(Number(value), locale, "locale", 2)
           }
           tick={{ fill: "currentColor" }} // ✅ Ensures Tailwind applies color
         />
@@ -50,8 +50,8 @@ export function Charts({ data: { salesData } }: ChartsProps) {
                     {translate(locale, "Total sales")}:{" "}
                     {formatCurrency(
                       Number(payload[0].value),
-                      "en",
-                      "USD",
+                      locale,
+                      "locale",
                       2,
                     )}
                   </p>

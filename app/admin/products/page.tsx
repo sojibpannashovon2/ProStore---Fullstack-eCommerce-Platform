@@ -6,6 +6,7 @@ import {
   getAdminProducts,
 } from "@/lib/actions/product.actions"
 import { requireAdmin } from "@/lib/auth-guard"
+import { getServerLocale } from "@/lib/i18n/locale"
 import { formatCurrency, formatId } from "@/lib/utils"
 
 import { AppPagination } from "@/components/shared/app-pagination"
@@ -38,6 +39,7 @@ interface AdminProductsPageProps {
 export default async function AdminProductsPage(props: AdminProductsPageProps) {
   await requireAdmin()
 
+  const locale = await getServerLocale()
   const searchParams = await props.searchParams
 
   const page = Number(searchParams.page) || 1
@@ -92,7 +94,7 @@ export default async function AdminProductsPage(props: AdminProductsPageProps) {
                 <TranslatedText text={product.name} kind="productName" />
               </TableCell>
               <TableCell className="text-right">
-                {formatCurrency(product.price, "en", "USD", 2)}
+                {formatCurrency(product.price, locale, "locale", 2)}
               </TableCell>
               <TableCell><TranslatedText text={product.category} /></TableCell>
               <TableCell>{product.stock}</TableCell>

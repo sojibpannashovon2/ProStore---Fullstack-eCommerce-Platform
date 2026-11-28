@@ -5,6 +5,7 @@ import { Eye } from "lucide-react"
 
 import { getOrderSummary } from "@/lib/actions/order.actions"
 import { requirePermission } from "@/lib/auth-guard"
+import { getServerLocale } from "@/lib/i18n/locale"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ export const metadata: Metadata = {
 export default async function AdminDashboardPage() {
   await requirePermission("dashboard.view")
 
+  const locale = await getServerLocale()
   const summary = await getOrderSummary()
 
   return (
@@ -40,8 +42,8 @@ export default async function AdminDashboardPage() {
           icon={{ name: "BadgeDollarSign" }}
           value={formatCurrency(
             summary.totalSales._sum.totalPrice?.toString() || 0,
-            "en",
-            "USD",
+            locale,
+            "locale",
             2,
           )}
         />
@@ -98,7 +100,7 @@ export default async function AdminDashboardPage() {
                       {formatDateTime(order.createdAt).dateOnly}
                     </TableCell>
                     <TableCell>
-                      {formatCurrency(order.totalPrice, "en", "USD", 2)}
+                      {formatCurrency(order.totalPrice, locale, "locale", 2)}
                     </TableCell>
                     <TableCell>
                       <Link href={`/order/${order.id}`}>

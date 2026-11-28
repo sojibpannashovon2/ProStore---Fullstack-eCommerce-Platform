@@ -195,6 +195,8 @@ export async function POST(request: Request) {
         price: true,
         stock: true,
         isFeatured: true,
+        rating: true,
+        createdAt: true,
       },
       orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
       take: 100,
@@ -236,6 +238,8 @@ export async function POST(request: Request) {
       price: product.price,
       stock: product.stock,
       isFeatured: product.isFeatured,
+      rating: Number(product.rating?.toString() || 0),
+      createdAt: product.createdAt,
       displayPrice: formatCurrency(priceUsd, locale),
       priceUsd: priceUsd.toFixed(2),
       availability:

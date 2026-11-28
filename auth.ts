@@ -7,6 +7,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "@/db/prisma"
 
 import { compare, hash } from "@/lib/encrypt"
+import { recordLoginFailure, recordLoginSuccess } from "@/lib/activity"
 
 import { authConfig } from "./auth.config"
 
@@ -45,6 +46,14 @@ export const config = {
 
           // If password is correct, return user
           if (isMatch) {
+            if (user.isDeleted) {
+              await recordLoginFailure(user.email)
+              return null
+            }
+            if (user.status !== "active") {
+              await recordLoginFailure(user.email)
+              return null
+            }
             if (!user.password.startsWith("$2")) {
               await prisma.user.update({
                 where: { id: user.id },
@@ -52,13 +61,17 @@ export const config = {
               })
             }
 
+            await recordLoginSuccess(user.id)
+
             return {
               id: user.id,
               name: user.name,
               email: user.email,
               role: user.role,
+              tokenVersion: user.tokenVersion,
             }
           }
+          await recordLoginFailure(user.email)
         }
         // If user does not exist or password does not match return null
         return null
@@ -72,6 +85,7 @@ export const config = {
       session.user.id = token.sub ?? ""
       session.user.role = token.role as string
       session.user.name = token.name
+      session.user.tokenVersion = token.tokenVersion as number
 
       // If there is an update, set the user name
       if (trigger === "update") {
@@ -84,6 +98,7 @@ export const config = {
       // Assign user fields to token
       if (user) {
         token.id = user.id
+        token.tokenVersion = (user as { tokenVersion?: number }).tokenVersion ?? 0
         if ("role" in user) {
           token.role = user.role
         }

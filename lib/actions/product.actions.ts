@@ -495,29 +495,38 @@ export async function deleteProduct(id: string) {
     const productId = z.string().uuid().parse(id)
     const productExists = await getProductById(productId)
 
-    if (!productExists) throw new Error("Product not found")
-    if (actor.role === "seller" && productExists.sellerId !== actor.id) {
-      throw new Error("You can only manage your own products")
-    }
+      if (!productExists) throw new Error("Product not found")
+      if (actor.role === "seller" && productExists.sellerId !== actor.id) {
+        throw new Error("You can only manage your own products")
+      }
 
-    if (productExists.isArchived) {
-      return { success: true, message: "Product is already archived" }
-    }
+      if (productExists.isArchived || productExists.isDeleted) {
+        return { success: true, message: "Product is already archived" }
+      }
 
-    await prisma.$transaction([
-      prisma.product.update({
-        where: { id: productId },
-        data: { isArchived: true },
-      }),
-      prisma.auditLog.create({
-        data: {
-          actorId: actor.id,
-          action: "product.archived",
-          targetType: "Product",
-          targetId: productId,
-        },
-      }),
-    ])
+      await prisma.$transaction(async (tx) => {
+        await tx.product.update({
+          where: { id: productId },
+          data: {
+            isArchived: true,
+            isDeleted: true,
+            deletedAt: new Date(),
+            deletedBy: actor.id,
+            updatedBy: actor.id,
+          },
+        })
+        await tx.auditLog.create({
+          data: {
+            actorId: actor.id,
+            actorRole: actor.role,
+            action: "delete",
+            targetType: "product",
+            targetId: productId,
+            oldValue: { isDeleted: false },
+            newValue: { isDeleted: true, isArchived: true },
+          },
+        })
+      })
 
     revalidatePath("/admin/products")
     revalidatePath("/seller/products")
@@ -539,14 +548,16 @@ export async function createProduct(data: InsertProduct): ActionReturn {
     await assertPermission(
       actor.role === "seller" ? "seller.products.manage" : "products.manage",
     )
-    const product = insertProductSchema.parse(data)
-    await prisma.product.create({
-      data: {
-        ...product,
-        sellerId: actor.role === "seller" ? actor.id : null,
-        isApproved: actor.role !== "seller",
-      },
-    })
+      const product = insertProductSchema.parse(data)
+      await prisma.product.create({
+        data: {
+          ...product,
+          sellerId: actor.role === "seller" ? actor.id : null,
+          isApproved: actor.role !== "seller",
+          createdBy: actor.id,
+          updatedBy: actor.id,
+        },
+      })
 
     revalidatePath("/admin/products")
     revalidatePath("/seller/products")
@@ -574,21 +585,53 @@ export async function updateProduct(data: UpdateProduct): ActionReturn {
     const product = updateProductSchema.parse(data)
     const productExists = await getProductById(product.id)
 
-    if (!productExists) throw new Error("Product not found")
-    if (actor.role === "seller" && productExists.sellerId !== actor.id) {
-      throw new Error("You can only manage your own products")
-    }
-    if (productExists.isArchived) {
-      throw new Error("Archived products cannot be edited")
-    }
+      if (!productExists) throw new Error("Product not found")
+      if (actor.role === "seller" && productExists.sellerId !== actor.id) {
+        throw new Error("You can only manage your own products")
+      }
+      if (productExists.isArchived || productExists.isDeleted) {
+        throw new Error("Deleted products cannot be edited")
+      }
 
-    await prisma.product.update({
-      where: { id: product.id },
-      data: {
-        ...product,
-        ...(actor.role === "seller" ? { isApproved: false } : {}),
-      },
-    })
+      const oldValue = {
+        name: productExists.name,
+        description: productExists.description,
+        price: productExists.price?.toString(),
+        stock: productExists.stock,
+        category: productExists.category,
+        images: productExists.images,
+        isFeatured: productExists.isFeatured,
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.product.update({
+          where: { id: product.id },
+          data: {
+            ...product,
+            updatedBy: actor.id,
+            ...(actor.role === "seller" ? { isApproved: false } : {}),
+          },
+        })
+        await tx.auditLog.create({
+          data: {
+            actorId: actor.id,
+            actorRole: actor.role,
+            action: "update",
+            targetType: "product",
+            targetId: product.id,
+            oldValue,
+            newValue: {
+              name: product.name,
+              description: product.description,
+              price: product.price?.toString(),
+              stock: product.stock,
+              category: product.category,
+              images: product.images,
+              isFeatured: product.isFeatured,
+            },
+          },
+        })
+      })
 
     revalidatePath("/admin/products")
     revalidatePath("/seller/products")

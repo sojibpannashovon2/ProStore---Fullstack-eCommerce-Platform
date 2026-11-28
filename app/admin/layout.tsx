@@ -18,7 +18,10 @@ export default async function AdminLayout({
   const adminLinks =
     actor.role === "super_admin"
       ? ADMIN_LINKS
-      : ADMIN_LINKS.filter((link) => link.href !== "/admin/permissions")
+      : ADMIN_LINKS.filter(
+          (link) =>
+            link.href !== "/admin/permissions" && link.href !== "/admin/deleted",
+        )
 
   return (
     <>

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
 import { prisma } from "@/db/prisma"
+import { touchLastActive } from "@/lib/activity"
 
 export type AppRole = "super_admin" | "admin" | "seller" | "customer"
 
@@ -14,10 +15,27 @@ export async function getCurrentUser() {
   const userId = session?.user?.id
   if (!userId) return null
 
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true },
+    select: {
+      id: true,
+      role: true,
+      status: true,
+      isDeleted: true,
+      tokenVersion: true,
+    },
   })
+
+  if (!user || user.isDeleted || user.status !== "active") return null
+
+  const tokenVersion = session?.user?.tokenVersion
+  if (typeof tokenVersion === "number" && tokenVersion !== user.tokenVersion) {
+    return null
+  }
+
+  void touchLastActive(user.id)
+
+  return user
 }
 
 export async function assertRole(...roles: AppRole[]) {

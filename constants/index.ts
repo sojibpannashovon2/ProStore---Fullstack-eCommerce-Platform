@@ -79,11 +79,15 @@ export const ADMIN_LINKS = [
     title: "Coupons",
     href: "/admin/coupons",
   },
-  {
-    title: "Users",
-    href: "/admin/users",
-  },
-]
+    {
+      title: "Users",
+      href: "/admin/users",
+    },
+    {
+      title: "Deleted items",
+      href: "/admin/deleted",
+    },
+  ]
 
 export const SELLER_LINKS = [
   { title: "Products", href: "/seller/products" },

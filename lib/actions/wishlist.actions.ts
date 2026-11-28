@@ -5,14 +5,15 @@ import { z } from "zod"
 
 import { prisma } from "@/db/prisma"
 import { assertRole } from "@/lib/auth-guard"
+import { writeAudit } from "@/lib/audit"
 import { convertToPlainObject } from "@/lib/utils"
 
 export async function toggleWishlistItem(productId: string) {
   const customer = await assertRole("customer")
   const id = z.string().uuid().parse(productId)
 
-  const product = await prisma.product.findUnique({
-    where: { id },
+  const product = await prisma.product.findFirst({
+    where: { id, isDeleted: false },
     select: { id: true },
   })
   if (!product) throw new Error("Product not found")
@@ -28,11 +29,28 @@ export async function toggleWishlistItem(productId: string) {
   }
   const existing = await prisma.wishlistItem.findUnique({
     where: key,
-    select: { productId: true },
+    select: { id: true, isDeleted: true },
   })
 
-  if (existing) {
-    await prisma.wishlistItem.delete({ where: key })
+  if (existing && !existing.isDeleted) {
+    await prisma.wishlistItem.update({
+      where: { id: existing.id },
+      data: { isDeleted: true, deletedAt: new Date(), deletedBy: customer.id },
+    })
+    await writeAudit({
+      actorId: customer.id,
+      actorRole: customer.role,
+      action: "delete",
+      targetType: "wishlist_item",
+      targetId: existing.id,
+      oldValue: { isDeleted: false },
+      newValue: { isDeleted: true },
+    })
+  } else if (existing) {
+    await prisma.wishlistItem.update({
+      where: { id: existing.id },
+      data: { isDeleted: false, deletedAt: null, deletedBy: null },
+    })
   } else {
     await prisma.wishlistItem.create({
       data: { wishlistId: wishlist.id, productId: id },
@@ -40,7 +58,7 @@ export async function toggleWishlistItem(productId: string) {
   }
 
   revalidatePath("/user/wishlist")
-  return { isWishlisted: !existing }
+  return { isWishlisted: !(existing && !existing.isDeleted) }
 }
 
 export async function getMyWishlist() {
@@ -49,6 +67,7 @@ export async function getMyWishlist() {
     where: { userId: customer.id },
     select: {
       items: {
+        where: { isDeleted: false, product: { isDeleted: false } },
         orderBy: { createdAt: "desc" },
         select: { product: true },
       },
@@ -62,7 +81,7 @@ export async function isProductWishlisted(productId: string) {
   const customer = await assertRole("customer")
   const id = z.string().uuid().parse(productId)
   const item = await prisma.wishlistItem.findFirst({
-    where: { wishlist: { userId: customer.id }, productId: id },
+    where: { wishlist: { userId: customer.id }, productId: id, isDeleted: false },
     select: { productId: true },
   })
   return Boolean(item)

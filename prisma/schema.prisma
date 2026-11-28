@@ -64,6 +64,11 @@ model Product {
   isApproved     Boolean          @default(true)
   isArchived     Boolean          @default(false)
   banner         String?
+  createdBy      String?          @db.Uuid
+  updatedBy      String?          @db.Uuid
+  deletedAt      DateTime?        @db.Timestamp(6)
+  deletedBy      String?          @db.Uuid
+  isDeleted      Boolean          @default(false)
   createdAt      DateTime         @default(now()) @db.Timestamp(6)
   updatedAt      DateTime         @updatedAt
   OrderItem      OrderItem[]
@@ -85,6 +90,9 @@ model Product {
   @@index([categoryId, createdAt], map: "Product_categoryId_createdAt_idx")
   @@index([brandId, createdAt], map: "Product_brandId_createdAt_idx")
   @@index([isApproved, createdAt], map: "Product_isApproved_createdAt_idx")
+  @@index([isDeleted], map: "Product_isDeleted_idx")
+  @@index([deletedAt], map: "Product_deletedAt_idx")
+  @@index([deletedBy], map: "Product_deletedBy_idx")
 }
 
 enum UserRole {
@@ -92,6 +100,13 @@ enum UserRole {
   admin
   seller
   customer
+}
+
+enum AccountStatus {
+  active
+  inactive
+  pending
+  blocked
 }
 
 enum SellerApplicationStatus {
@@ -161,8 +176,19 @@ model User {
   image                String?
   password             String?
   role                 UserRole            @default(customer)
+  status               AccountStatus       @default(active)
   address              Json?               @db.Json
   paymentMethod        String?
+  lastLoginAt          DateTime?           @db.Timestamp(6)
+  lastActiveAt         DateTime?           @db.Timestamp(6)
+  lastLoginIp          String?
+  lastLoginLocation    String?
+  tokenVersion         Int                 @default(0)
+  createdBy            String?             @db.Uuid
+  updatedBy            String?             @db.Uuid
+  deletedAt            DateTime?           @db.Timestamp(6)
+  deletedBy            String?             @db.Uuid
+  isDeleted            Boolean             @default(false)
   createdAt            DateTime            @default(now()) @db.Timestamp(6)
   updatedAt            DateTime            @updatedAt
   account              Account[]
@@ -184,6 +210,13 @@ model User {
   recordedPayouts      SellerPayout[]      @relation("PayoutRecorder")
   reviewedDocuments    SellerDocument[]    @relation("SellerDocumentReviewer")
   auditEvents          AuditLog[]          @relation("AuditActor")
+  loginHistory         LoginHistory[]
+
+  @@index([isDeleted], map: "User_isDeleted_idx")
+  @@index([deletedAt], map: "User_deletedAt_idx")
+  @@index([deletedBy], map: "User_deletedBy_idx")
+  @@index([status], map: "User_status_idx")
+  @@index([lastActiveAt], map: "User_lastActiveAt_idx")
 }
 
 model Role {
@@ -348,14 +381,19 @@ model Wishlist {
 }
 
 model WishlistItem {
-  wishlistId String   @db.Uuid
-  productId  String   @db.Uuid
-  createdAt  DateTime @default(now()) @db.Timestamp(6)
-  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  wishlistId String    @db.Uuid
+  productId  String    @db.Uuid
+  isDeleted  Boolean   @default(false)
+  deletedAt  DateTime? @db.Timestamp(6)
+  deletedBy  String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamp(6)
+  wishlist   Wishlist  @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@id([wishlistId, productId])
+  @@unique([wishlistId, productId])
   @@index([productId], map: "WishlistItem_productId_idx")
+  @@index([isDeleted], map: "WishlistItem_isDeleted_idx")
 }
 
 model SellerOrder {
@@ -511,15 +549,36 @@ model Notification {
 model AuditLog {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   actorId    String?  @db.Uuid
+  actorRole  String?
   action     String
   targetType String
   targetId   String?
+  oldValue   Json?    @db.Json
+  newValue   Json?    @db.Json
+  reason     String?
+  ipAddress  String?
+  location   String?
   metadata   Json?    @db.Json
   createdAt  DateTime @default(now()) @db.Timestamp(6)
   actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([actorId, createdAt], map: "AuditLog_actorId_createdAt_idx")
   @@index([targetType, targetId, createdAt], map: "AuditLog_targetType_targetId_createdAt_idx")
+}
+
+model LoginHistory {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @db.Uuid
+  loginAt   DateTime  @default(now()) @db.Timestamp(6)
+  logoutAt  DateTime? @db.Timestamp(6)
+  ipAddress String?
+  device    String?
+  browser   String?
+  location  String?
+  success   Boolean   @default(true)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loginAt], map: "LoginHistory_userId_loginAt_idx")
 }
 
 model SystemSetting {

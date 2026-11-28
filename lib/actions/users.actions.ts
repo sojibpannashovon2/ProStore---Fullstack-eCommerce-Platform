@@ -20,6 +20,7 @@ import {
   isAdminRole,
 } from "@/lib/auth-guard"
 import { formatError } from "@/lib/utils"
+import { canAssignRole } from "@/lib/rbac"
 import {
   paymentMethodSchema,
   shippingAddressSchema,
@@ -124,7 +125,19 @@ export async function updateProfile(user: {
   }
 }
 
-type AdminUser = Pick<User, "id" | "name" | "email" | "role" | "createdAt">
+type AdminUser = Pick<
+  User,
+  | "id"
+  | "name"
+  | "email"
+  | "role"
+  | "createdAt"
+  | "status"
+  | "lastLoginAt"
+  | "lastActiveAt"
+  | "lastLoginIp"
+  | "lastLoginLocation"
+>
 
 const getAllUsersCached = unstable_cache(
   async ({
@@ -141,16 +154,17 @@ const getAllUsersCached = unstable_cache(
     const queryFilter: Prisma.UserWhereInput =
       query && query !== "all"
         ? {
-            name: {
-              contains: query,
-              mode: "insensitive",
-            } as Prisma.StringFilter,
+            OR: [
+              { name: { contains: query, mode: "insensitive" } },
+              { email: { contains: query, mode: "insensitive" } },
+            ],
           }
         : {}
 
     const data: AdminUser[] = await prisma.user.findMany({
       where: {
         ...queryFilter,
+        isDeleted: false,
       },
       orderBy: { createdAt: "desc" },
       take: safeLimit,
@@ -160,13 +174,19 @@ const getAllUsersCached = unstable_cache(
         name: true,
         email: true,
         role: true,
+        status: true,
         createdAt: true,
+        lastLoginAt: true,
+        lastActiveAt: true,
+        lastLoginIp: true,
+        lastLoginLocation: true,
       },
     })
 
     const dataCount = await prisma.user.count({
       where: {
         ...queryFilter,
+        isDeleted: false,
       },
     })
 
@@ -199,7 +219,7 @@ export async function getAllUsers(params: {
   return getAllUsersCached({ ...params, limit: safeLimit, page: safePage, query })
 }
 
-// Delete a user
+// Delete a user (soft delete)
 export async function deleteUser(id: string) {
   try {
     const actor = await assertPermission("users.manage")
@@ -210,14 +230,36 @@ export async function deleteUser(id: string) {
 
     const target = await prisma.user.findUnique({
       where: { id: targetId },
-      select: { role: true },
+      select: { role: true, isDeleted: true },
     })
     if (!target) throw new Error("User not found")
+    if (target.isDeleted) throw new Error("User is already deleted")
     if (actor.role !== "super_admin" && isAdminRole(target.role)) {
       throw new Error("Only a super administrator can delete administrators")
     }
 
-    await prisma.user.delete({ where: { id: targetId } })
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: targetId },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: actor.id,
+          updatedBy: actor.id,
+          tokenVersion: { increment: 1 },
+        },
+      }),
+      prisma.auditLog.create({
+        data: {
+          actorId: actor.id,
+          actorRole: actor.role,
+          action: "delete",
+          targetType: "user",
+          targetId,
+          newValue: { isDeleted: true },
+        },
+      }),
+    ])
 
     revalidatePath("/admin/users")
     updateTag("all-users")
@@ -245,25 +287,43 @@ export async function updateUser(user: UpdateUser) {
 
     const target = await prisma.user.findUnique({
       where: { id: parsedUser.id },
-      select: { role: true },
+      select: { role: true, isDeleted: true },
     })
     if (!target) throw new Error("User not found")
-    if (
-      actor.role !== "super_admin" &&
-      (isAdminRole(target.role) || parsedUser.role === "admin")
-    ) {
+    if (target.isDeleted) throw new Error("Deleted users cannot be edited")
+    if (actor.role !== "super_admin" && isAdminRole(target.role)) {
       throw new Error("Only a super administrator can manage administrator roles")
+    }
+    if (!canAssignRole(actor.role, parsedUser.role)) {
+      throw new Error("Your role cannot assign that role")
     }
     if (target.role !== "seller" && parsedUser.role === "seller") {
       throw new Error("Seller access is granted only after application approval")
     }
 
-    await prisma.user.update({
-      where: { id: parsedUser.id },
-      data: {
-        name: parsedUser.name,
-        role: parsedUser.role,
-      },
+    const roleChanged = target.role !== parsedUser.role
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: parsedUser.id },
+        data: {
+          name: parsedUser.name,
+          role: parsedUser.role,
+          updatedBy: actor.id,
+          ...(roleChanged ? { tokenVersion: { increment: 1 } } : {}),
+        },
+      })
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id,
+          actorRole: actor.role,
+          action: roleChanged ? "role_change" : "update",
+          targetType: "user",
+          targetId: parsedUser.id,
+          oldValue: { role: target.role },
+          newValue: { role: parsedUser.role, name: parsedUser.name },
+        },
+      })
     })
 
     revalidatePath("/admin/users")

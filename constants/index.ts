@@ -10,8 +10,8 @@ export const GITHUB_REPO_URL =
 
 // auth
 export const signInDefaultValues = {
-  email: "user@example.com",
-  password: "123456",
+  email: "",
+  password: "",
 }
 
 // product

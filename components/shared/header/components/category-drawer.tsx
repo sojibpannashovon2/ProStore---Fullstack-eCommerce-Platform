@@ -29,7 +29,7 @@ export function CategoryDrawer({
           <TranslatedText text="Select a category" />
         </span>
       </DrawerTrigger>
-      <DrawerContent className="h-full max-w-sm">
+      <DrawerContent className="h-full max-w-sm overflow-y-auto">
         <DrawerHeader>
           <DrawerTitle>
             <TranslatedText text="Select a category" />

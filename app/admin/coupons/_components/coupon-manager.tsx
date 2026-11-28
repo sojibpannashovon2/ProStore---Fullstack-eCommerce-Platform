@@ -5,6 +5,7 @@ import { useState, useTransition } from "react"
 import type { FormEvent } from "react"
 
 import { createCoupon, setCouponActive } from "@/lib/actions/coupon.actions"
+import { showSuccessToast } from "@/components/ui/sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,6 +45,7 @@ export function CouponManager({ coupons }: { coupons: CouponRow[] }) {
       const result = await createCoupon(data)
       setMessage(result.message)
       if (result.success) {
+        showSuccessToast(result.message || "Coupon created successfully")
         form.reset()
         router.refresh()
       }
@@ -54,7 +56,10 @@ export function CouponManager({ coupons }: { coupons: CouponRow[] }) {
     startTransition(async () => {
       const result = await setCouponActive(id, !isActive)
       setMessage(result.message)
-      if (result.success) router.refresh()
+      if (result.success) {
+        showSuccessToast(result.message || "Coupon updated")
+        router.refresh()
+      }
     })
   }
 

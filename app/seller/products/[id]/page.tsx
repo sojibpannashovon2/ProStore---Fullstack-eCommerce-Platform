@@ -5,7 +5,6 @@ import { getSellerProductById } from "@/lib/actions/product.actions"
 
 import { TranslatedText } from "@/components/shared/translated-text"
 import { ProductForm } from "@/app/admin/products/_components/product-form"
-import { isS3StorageConfigured } from "@/lib/storage/s3"
 
 export const metadata: Metadata = {
   title: "Update Product",
@@ -32,7 +31,7 @@ export default async function SellerProductUpdatePage({
         product={product}
         productId={product.id}
         returnTo="/seller/products"
-        imageUploadsEnabled={isS3StorageConfigured()}
+        imageUploadsEnabled={true}
       />
     </>
   )

@@ -36,6 +36,35 @@ type GetAllProductsOptions = {
   availability?: "all" | "in-stock"
 }
 
+// Main categories that have significant product counts - everything else goes to "Others"
+const MAIN_CATEGORIES = [
+  "Clothing, Shoes & Jewelry",
+  "Home & Kitchen",
+  "Electronics",
+  "Tools & Home Improvement",
+  "Sports & Outdoors",
+  "Accessories",
+  "Health & Household",
+  "Beauty & Personal Care",
+  "Office Products",
+  "Toys & Games",
+  "Automotive",
+  "Baby",
+  "Pet Supplies",
+  "Cell Phones & Accessories",
+  "Industrial & Scientific",
+  "Video Games",
+  "Grocery & Gourmet Food",
+  "Motorcycle & Powersports",
+  "Kitchen & Dining",
+  "CDs & Vinyl",
+  "Power & Hand Tools",
+  "Appliances",
+  "Musical Instruments",
+  "Men",
+  "Women",
+]
+
 export async function approveProduct(productId: string) {
   try {
     const actor = await assertPermission("products.manage")
@@ -122,6 +151,107 @@ export const getFeaturedProducts = unstable_cache(
   { revalidate: 60, tags: ["getFeaturedProducts"] },
 )
 
+// Get products for the homepage sections, one group of 10 per section.
+// Each section shows a distinct slice of the catalogue so none are empty
+// (as long as there are at least 100 approved products).
+export const getHomeSections = unstable_cache(
+  async (): Promise<Product[][]> => {
+    const data = await prisma.product.findMany({
+      where: { isApproved: true, isArchived: false },
+      orderBy: { createdAt: "desc" },
+      take: 300,
+    })
+
+    const products = convertToPlainObject(data)
+    const SECTION_SIZE = 10
+    const used = new Set<string>()
+    const sections: Product[][] = []
+
+    const take = (predicate: (p: Product) => boolean, limit: number) => {
+      const picked: Product[] = []
+      for (const product of products) {
+        if (picked.length >= limit) break
+        if (used.has(product.id)) continue
+        if (predicate(product)) {
+          picked.push(product)
+          used.add(product.id)
+        }
+      }
+      return picked
+    }
+
+    const categoryCount = (product: Product, category: string) =>
+      product.category.toLowerCase() === category.toLowerCase()
+
+    // 1. Trending — featured first, then highest rated
+    sections.push([
+      ...take((p) => p.isFeatured, SECTION_SIZE),
+      ...take((p) => Number(p.rating) >= 4, SECTION_SIZE),
+    ].slice(0, SECTION_SIZE))
+
+    // 2. New Arrival — newest (fallback to remaining)
+    sections.push([
+      ...take(() => true, SECTION_SIZE),
+    ].slice(0, SECTION_SIZE))
+
+    // 3. Best Sellers — most reviewed, then in-stock
+    sections.push([
+      ...take((p) => Number(p.numReviews) > 0, SECTION_SIZE),
+      ...take((p) => p.stock > 0, SECTION_SIZE),
+    ].slice(0, SECTION_SIZE))
+
+    // 4. Deals — lowest priced first
+    sections.push([
+      ...take((p) => Number(p.price) < 40, SECTION_SIZE),
+      ...take(() => true, SECTION_SIZE),
+    ].slice(0, SECTION_SIZE))
+
+    // 5. Top Picks — home & kitchen
+    sections.push([
+      ...take((p) => categoryCount(p, "Home & Kitchen"), SECTION_SIZE),
+      ...take(() => true, SECTION_SIZE),
+    ].slice(0, SECTION_SIZE))
+
+    // 6. Edition № 06 — electronics
+    sections.push([
+      ...take((p) => categoryCount(p, "Electronics"), SECTION_SIZE),
+      ...take(() => true, SECTION_SIZE),
+    ].slice(0, SECTION_SIZE))
+
+    // 7. Just In — clothing
+    sections.push([
+      ...take((p) => categoryCount(p, "Clothing"), SECTION_SIZE),
+      ...take(() => true, SECTION_SIZE),
+    ].slice(0, SECTION_SIZE))
+
+    // 8. The Vault — bags
+    sections.push([
+      ...take((p) => categoryCount(p, "Bags"), SECTION_SIZE),
+      ...take(() => true, SECTION_SIZE),
+    ].slice(0, SECTION_SIZE))
+
+    // 9. Essentials — footwear
+    sections.push([
+      ...take((p) => categoryCount(p, "Footwear"), SECTION_SIZE),
+      ...take(() => true, SECTION_SIZE),
+    ].slice(0, SECTION_SIZE))
+
+    // 10. Architectural — accessories + office
+    sections.push([
+      ...take(
+        (p) =>
+          categoryCount(p, "Accessories") || categoryCount(p, "Home & Office"),
+        SECTION_SIZE,
+      ),
+      ...take(() => true, SECTION_SIZE),
+    ].slice(0, SECTION_SIZE))
+
+    return sections
+  },
+  ["getHomeSections"],
+  { revalidate: 60, tags: ["getHomeSections", "getAllProducts"] },
+)
+
 // Get single product by it's id
 export async function getProductById(id: string) {
   const productId = z.string().uuid().parse(id)
@@ -183,8 +313,12 @@ const getAllProductsCached = unstable_cache(
           }
         : {}
 
-    // Category filter
-    const categoryFilter = category && category !== "all" ? { category } : {}
+    // Category filter - handle "Others" option
+    const categoryFilter = category && category !== "all"
+      ? category === "Others"
+        ? { category: { notIn: MAIN_CATEGORIES } }
+        : { category }
+      : {}
 
     // Price filter
     const priceFilter: Prisma.ProductWhereInput =
@@ -298,18 +432,41 @@ export const getAllCategories = unstable_cache(
   async (): Promise<
     Array<{ category: string; _count: { category: number } }>
   > => {
-    const data = await prisma.product.groupBy({
+    // Get counts for main categories
+    const mainCategoriesData = await prisma.product.groupBy({
       by: ["category"],
-      where: { isApproved: true, isArchived: false },
+      where: {
+        isApproved: true,
+        isArchived: false,
+        category: { in: MAIN_CATEGORIES },
+      },
       _count: {
         category: true,
       },
     })
 
-    return convertToPlainObject(data) as Array<{
+    // Get count for "Others" - all categories not in MAIN_CATEGORIES
+    const othersCount = await prisma.product.count({
+      where: {
+        isApproved: true,
+        isArchived: false,
+        category: { notIn: MAIN_CATEGORIES },
+      },
+    })
+
+    const mainCategories = convertToPlainObject(mainCategoriesData) as Array<{
       category: string
       _count: { category: number }
     }>
+
+    // Add "Others" category with its count
+    const allCategories = [
+      ...mainCategories,
+      { category: "Others", _count: { category: othersCount } },
+    ]
+
+    // Sort by count descending
+    return allCategories.sort((a, b) => b._count.category - a._count.category)
   },
   ["getAllCategories"],
   { revalidate: 60 * 60, tags: ["getAllCategories"] },

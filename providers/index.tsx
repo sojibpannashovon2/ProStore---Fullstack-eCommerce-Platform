@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/sonner"
+import { SessionProvider } from "next-auth/react"
 
 import type { Locale } from "@/lib/i18n/translations"
 
@@ -13,11 +14,13 @@ export function Providers({
   locale: Locale
 }>) {
   return (
-    <LocaleProvider initialLocale={locale}>
-      <ThemeProvider>
-        {children}
-        <Toaster />
-      </ThemeProvider>
-    </LocaleProvider>
+    <SessionProvider>
+      <LocaleProvider initialLocale={locale}>
+        <ThemeProvider>
+          {children}
+          <Toaster />
+        </ThemeProvider>
+      </LocaleProvider>
+    </SessionProvider>
   )
 }

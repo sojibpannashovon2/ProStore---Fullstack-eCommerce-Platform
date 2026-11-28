@@ -2,11 +2,12 @@
 
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { useActionState } from "react"
+import { useEffect, useActionState } from "react"
 
 import { useFormStatus } from "react-dom"
 
 import { signUpUser } from "@/lib/actions/auth.actions"
+import { showSuccessToast } from "@/components/ui/sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -91,6 +92,9 @@ const SignUpForm = () => {
             {translateMessage(locale, data.message)}
           </div>
         )}
+        {data && data.success && (
+          <SignUpSuccessToast message={data.message} />
+        )}
 
         <div className="text-muted-foreground text-center text-sm">
           <TranslatedText text="Already have an account?" />{" "}
@@ -104,3 +108,11 @@ const SignUpForm = () => {
 }
 
 export default SignUpForm
+
+function SignUpSuccessToast({ message }: { message: string }) {
+  const { locale } = useLocale()
+  useEffect(() => {
+    showSuccessToast(translateMessage(locale, message) || message)
+  }, [locale, message])
+  return null
+}

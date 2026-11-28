@@ -38,7 +38,7 @@ export function Menu() {
               <TranslatedText text="Menu" />
             </span>
           </SheetTrigger>
-          <SheetContent className="flex flex-col items-start">
+          <SheetContent side="left" className="flex w-72 flex-col gap-4 overflow-y-auto p-6">
             <SheetHeader>
               <SheetTitle>
                 <TranslatedText text="Menu" />

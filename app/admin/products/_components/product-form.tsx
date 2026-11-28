@@ -65,6 +65,10 @@ function isNeonStorageImage(image: string) {
   }
 }
 
+function isLocalUploadImage(image: string) {
+  return image.startsWith("/images/uploads/")
+}
+
 function isSupportedImageReference(image: string) {
   return (
     image.startsWith("/images/") ||
@@ -170,18 +174,34 @@ export function ProductForm({
 
     setIsUploading(true)
     try {
-      const { data } = await axios.post<{
-        uploadUrl: string
-        imageUrl: string
-      }>("/api/storage/upload", {
-        contentType: file.type,
-        fileSize: file.size,
-      })
+      // Try Neon S3 storage first; if not configured (503), upload locally.
+      let uploadedUrl: string
+      try {
+        const { data } = await axios.post<{
+          uploadUrl: string
+          imageUrl: string
+        }>("/api/storage/upload", {
+          contentType: file.type,
+          fileSize: file.size,
+        })
 
-      await axios.put(data.uploadUrl, file, {
-        headers: { "Content-Type": file.type },
-      })
-      onUploaded(data.imageUrl)
+        await axios.put(data.uploadUrl, file, {
+          headers: { "Content-Type": file.type },
+        })
+        uploadedUrl = data.imageUrl
+      } catch (error) {
+        const status = axios.isAxiosError(error)
+          ? error.response?.status
+          : undefined
+        if (status !== 503) throw error
+        const { data } = await axios.put<{ imageUrl: string }>(
+          "/api/storage/upload/local",
+          file,
+          { headers: { "Content-Type": file.type } },
+        )
+        uploadedUrl = data.imageUrl
+      }
+      onUploaded(uploadedUrl)
       toast.success(translate(locale, "Image uploaded successfully"))
     } catch (error) {
       const message = axios.isAxiosError(error)
@@ -334,6 +354,10 @@ export function ProductForm({
                                     await axios.delete("/api/storage/upload", {
                                       data: { url: image },
                                     })
+                                  } else if (isLocalUploadImage(image)) {
+                                    await axios.delete("/api/storage/upload/local", {
+                                      data: { url: image },
+                                    })
                                   }
                                   // Remove image from form state
                                   form.setValue(
@@ -399,6 +423,11 @@ export function ProductForm({
                         <TranslatedText text="Direct uploads are disabled. Configure Neon S3 storage to upload files." />
                       </p>
                     )}
+                    {imageUploadsEnabled && (
+                      <p className="text-sm text-muted-foreground">
+                        <TranslatedText text="Pick an image file (JPG, PNG, WebP, GIF, AVIF, up to 4 MB) or paste an image URL." />
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
                 <FormMessage />
@@ -439,6 +468,10 @@ export function ProductForm({
                         try {
                           if (isNeonStorageImage(banner)) {
                             await axios.delete("/api/storage/upload", {
+                              data: { url: banner },
+                            })
+                          } else if (isLocalUploadImage(banner)) {
+                            await axios.delete("/api/storage/upload/local", {
                               data: { url: banner },
                             })
                           }

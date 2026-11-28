@@ -12,6 +12,8 @@ import { FilterSidebar } from "./_components/filter-sidebar"
 import { SortSelect } from "./_components/sort-select"
 import { SearchXIcon } from "lucide-react"
 
+import { SEARCH_PAGE_SIZE } from "@/constants"
+
 interface SearchPageProps {
   searchParams: Promise<{
     q?: string
@@ -72,6 +74,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     getAllProducts({
       query: q,
       category,
+      limit: SEARCH_PAGE_SIZE,
       page: Number(page),
       price,
       rating,

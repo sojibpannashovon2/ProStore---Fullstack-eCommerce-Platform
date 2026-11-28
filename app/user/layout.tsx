@@ -3,14 +3,21 @@ import Link from "next/link"
 
 import { APP_NAME, USER_LINKS } from "@/constants"
 
+import { auth } from "@/auth"
 import { Menu } from "@/components/shared/header/components/menu"
 import { MainNav } from "@/components/shared/nav-main"
 
-export default function UserLayout({
+export default async function UserLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const session = await auth()
+  const isCustomer = session?.user?.role === "customer"
+  // Wishlist is customer-only; hide it for admin/seller viewing user pages.
+  const links = isCustomer
+    ? USER_LINKS
+    : USER_LINKS.filter((link) => link.href !== "/user/wishlist")
   return (
     <>
       <div className="flex flex-col">
@@ -25,7 +32,7 @@ export default function UserLayout({
                 className="h-10 w-auto"
               />
             </Link>
-            <MainNav links={USER_LINKS} className="mx-6" />
+            <MainNav links={links} className="mx-6" />
             <div className="ml-auto flex items-center space-x-4">
               <Menu />
             </div>

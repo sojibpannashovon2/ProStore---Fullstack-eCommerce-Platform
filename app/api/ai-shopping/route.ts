@@ -9,6 +9,7 @@ import {
   translateCatalogName,
 } from "@/lib/i18n/translations"
 import { formatCurrency } from "@/lib/utils"
+import { runCustomShoppingAgent } from "@/lib/ai/custom-shopping-agent"
 
 const requestSchema = z.object({
   locale: z.enum(["bn", "en"]),
@@ -185,6 +186,7 @@ export async function POST(request: Request) {
   try {
     products = await prisma.product.findMany({
       select: {
+        id: true,
         name: true,
         slug: true,
         brand: true,
@@ -225,14 +227,17 @@ export async function POST(request: Request) {
     const description = translateCatalogName(locale, product.description)
 
     return {
+      id: product.id,
       name,
       slug: product.slug,
       brand,
       category,
       description: description.slice(0, 360),
+      price: product.price,
+      stock: product.stock,
+      isFeatured: product.isFeatured,
       displayPrice: formatCurrency(priceUsd, locale),
       priceUsd: priceUsd.toFixed(2),
-      stock: product.stock,
       availability:
         product.stock > 0
           ? locale === "bn"
@@ -244,7 +249,7 @@ export async function POST(request: Request) {
     }
   })
 
-  const language = locale === "bn" ? "Bengali (Bangla)" : "English"
+const language = locale === "bn" ? "Bengali (Bangla)" : "English"
   const systemPrompt = [
     "You are Kinora's friendly AI shopping assistant. Be warm, clear, concise, and conversational, but never claim to be human.",
     `Reply in ${language}.`,
@@ -258,15 +263,18 @@ export async function POST(request: Request) {
     JSON.stringify(catalog),
   ].join("\n\n")
 
+  // Try Ollama first, fall back to custom algorithmic agent
   const baseUrl =
     process.env.OLLAMA_BASE_URL?.replace(/\/+$/, "") || "http://127.0.0.1:11434"
   const model = process.env.OLLAMA_MODEL || "qwen2.5:3b"
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 90_000)
+  const timeout = setTimeout(() => controller.abort(), 15_000)
 
-  let ollamaResponse: Response
+  let aiContent: string
+  let usedFallback = false
+
   try {
-    ollamaResponse = await fetch(`${baseUrl}/api/chat`, {
+    const ollamaResponse = await fetch(`${baseUrl}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -280,61 +288,34 @@ export async function POST(request: Request) {
       }),
       signal: controller.signal,
     })
+
+    if (ollamaResponse.ok) {
+      const completion = await ollamaResponse.json()
+      const result = ollamaResponseSchema.safeParse(completion)
+      if (result.success && result.data.message.content.trim()) {
+        aiContent = result.data.message.content.trim()
+      } else {
+        throw new Error("Empty or invalid Ollama response")
+      }
+    } else {
+      throw new Error(`Ollama returned ${ollamaResponse.status}`)
+    }
   } catch (error) {
-    console.error(
-      "Shopping assistant could not reach Ollama",
+    console.log(
+      "Ollama unavailable, using custom algorithmic agent:",
       error instanceof Error ? error.message : error,
     )
-    return apiError(
-      "AI_SERVICE_UNAVAILABLE",
-      getErrorMessage(locale, model),
-      503,
-    )
+    usedFallback = true
+    // Use custom agent as fallback
+    const agentResult = await runCustomShoppingAgent(locale, messages, catalog)
+    aiContent = agentResult.content
+    // Use the custom agent's matched products
+    return apiSuccess({
+      content: aiContent,
+      products: agentResult.products,
+    })
   } finally {
     clearTimeout(timeout)
-  }
-
-  if (!ollamaResponse.ok) {
-    const details = await ollamaResponse.text()
-    console.error(
-      `Ollama returned ${ollamaResponse.status}`,
-      details.slice(0, 300),
-    )
-    const modelNotFound = ollamaResponse.status === 404
-    return apiError(
-      modelNotFound ? "AI_MODEL_NOT_FOUND" : "AI_SERVICE_UNAVAILABLE",
-      modelNotFound && locale === "bn"
-        ? `স্থানীয় মডেলটি পাওয়া যায়নি। \`ollama pull ${model}\` চালান।`
-        : modelNotFound
-          ? `Local model not found. Run \`ollama pull ${model}\`.`
-          : getErrorMessage(locale, model),
-      503,
-    )
-  }
-
-  let completion: unknown
-  try {
-    completion = await ollamaResponse.json()
-  } catch (error) {
-    console.error("Ollama returned an invalid response", error)
-    return apiError(
-      "INVALID_AI_RESPONSE",
-      locale === "bn"
-        ? "স্থানীয় AI থেকে সঠিক উত্তর পাওয়া যায়নি। আবার চেষ্টা করুন।"
-        : "The local AI returned an invalid response. Please try again.",
-      502,
-    )
-  }
-
-  const result = ollamaResponseSchema.safeParse(completion)
-  if (!result.success || !result.data.message.content.trim()) {
-    return apiError(
-      "EMPTY_AI_RESPONSE",
-      locale === "bn"
-        ? "স্থানীয় AI কোনো উত্তর দিতে পারেনি। আবার চেষ্টা করুন।"
-        : "The local AI did not return an answer. Please try again.",
-      502,
-    )
   }
 
   const isProductQuestion =
@@ -344,7 +325,7 @@ export async function POST(request: Request) {
     )
 
   return apiSuccess({
-    content: result.data.message.content.trim(),
+    content: aiContent,
     products: isProductQuestion
       ? catalog
           .slice(0, 4)

@@ -10,7 +10,7 @@ import { CategoryDrawer, Menu, Search } from "./components"
 export async function Header() {
   const categories = await getAllCategories()
   return (
-    <header className="w-full border-b">
+    <header className="w-full border-b overflow-x:auto">
       <div className="wrapper flex flex-wrap items-center justify-between gap-3">
         <div className="flex-start">
           <CategoryDrawer categories={categories} />

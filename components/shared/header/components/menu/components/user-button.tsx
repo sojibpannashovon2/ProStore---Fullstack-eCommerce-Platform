@@ -1,6 +1,8 @@
+"use client"
+
 import Link from "next/link"
 
-import { auth } from "@/auth"
+import { useSession } from "next-auth/react"
 import { UserIcon } from "lucide-react"
 
 import { ADMIN_LINKS } from "@/constants"
@@ -17,10 +19,10 @@ import {
 import { SignOutButton } from "./sign-out-button"
 import { TranslatedText } from "@/components/shared/translated-text"
 
-export async function UserButton() {
-  const session = await auth()
+export function UserButton() {
+  const { data: session, status } = useSession()
 
-  if (!session) {
+  if (status !== "authenticated") {
     return (
       <Button asChild>
         <Link href="/sign-in">
@@ -36,16 +38,14 @@ export async function UserButton() {
     <div className="flex items-center gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <div className="flex items-center">
-            <Button
-              variant="secondary"
-              className="relative ml-2 flex h-8 w-8 items-center justify-center rounded-full"
-            >
-              {firstInitial}
-            </Button>
-          </div>
+          <Button
+            variant="secondary"
+            className="relative ml-2 flex h-8 w-8 items-center justify-center rounded-full"
+          >
+            {firstInitial}
+          </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuContent className="w-56" align="end">
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <div className="text-sm leading-none font-medium">

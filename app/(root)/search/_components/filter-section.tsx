@@ -36,7 +36,7 @@ export function FilterSection({
           <TranslatedText text={title} />
         </AccordionTrigger>
         <AccordionContent>
-          <ul className="space-y-1">
+          <ul className="max-h-64 space-y-1 overflow-y-auto pr-2">
             <li>
               <Link
                 className={`hover:bg-muted text-muted-foreground block rounded p-1 transition ${
@@ -48,7 +48,7 @@ export function FilterSection({
               </Link>
             </li>
             {items.map((item) => (
-              <li key={item.value}>
+              <li key={`${paramKey}-${item.value}`}>
                 <Link
                   className={`hover:bg-muted text-muted-foreground block rounded p-1 transition ${
                     currentValue === item.value && "text-primary font-bold"

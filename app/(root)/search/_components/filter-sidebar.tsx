@@ -4,6 +4,8 @@ import { TranslatedText } from "@/components/shared/translated-text"
 
 import { FilterSection } from "./filter-section"
 
+const OTHERS_CATEGORY = "Others"
+
 interface FilterSidebarProps {
   currentFilters: {
     category: string
@@ -66,7 +68,12 @@ function FilterOptions({
     <>
       <FilterSection
         title="Categories"
-        items={categories.map((c) => ({ name: c.category, value: c.category }))}
+        items={[
+          ...categories.map((c) => ({ name: c.category, value: c.category })),
+          ...categories.some((c) => c.category === OTHERS_CATEGORY)
+            ? []
+            : [{ name: OTHERS_CATEGORY, value: OTHERS_CATEGORY }],
+        ]}
         currentValue={currentFilters.category}
         paramKey="c"
         getFilterUrl={getFilterUrl}

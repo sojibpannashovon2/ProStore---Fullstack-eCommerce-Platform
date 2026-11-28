@@ -6,6 +6,7 @@ import { Heart } from "lucide-react"
 
 import { toggleWishlistItem } from "@/lib/actions/wishlist.actions"
 
+import { showSuccessToast } from "@/components/ui/sonner"
 import { Button } from "@/components/ui/button"
 
 export function WishlistButton({
@@ -28,7 +29,9 @@ export function WishlistButton({
       try {
         const result = await toggleWishlistItem(productId)
         setIsWishlisted(result.isWishlisted)
-        setMessage(result.isWishlisted ? "Added to wishlist" : "Removed from wishlist")
+        const text = result.isWishlisted ? "Added to wishlist" : "Removed from wishlist"
+        setMessage(text)
+        if (result.isWishlisted) showSuccessToast(text, "You can find it under your wishlist")
       } catch {
         setMessage("Sign in as a customer to manage your wishlist")
       }

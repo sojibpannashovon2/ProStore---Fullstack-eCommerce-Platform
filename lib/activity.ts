@@ -1,5 +1,6 @@
 import { prisma } from "@/db/prisma"
 import { getRequestMeta } from "@/lib/security/request-meta"
+import { sendSecurityAlert } from "@/lib/security/notify"
 
 const ONLINE_WINDOW_MS = 5 * 60 * 1000
 const THROTTLE_MS = 60 * 1000
@@ -61,8 +62,19 @@ export async function recordLoginFailure(email: string) {
     where: { email },
     select: { id: true },
   })
-  if (!user) return
   const meta = await getRequestMeta()
+  if (!user) {
+    await prisma.auditLog.create({
+      data: {
+        action: "security.login_failed",
+        targetType: "user",
+        ipAddress: meta.ip,
+        location: meta.location,
+        reason: `Unknown email: ${email}`,
+      },
+    })
+    return
+  }
   await prisma.loginHistory.create({
     data: {
       userId: user.id,
@@ -73,4 +85,51 @@ export async function recordLoginFailure(email: string) {
       success: false,
     },
   })
+
+  const since = new Date(Date.now() - 15 * 60 * 1000)
+  const recentFailures = await prisma.loginHistory.count({
+    where: { ipAddress: meta.ip, success: false, loginAt: { gte: since } },
+  })
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: user.id,
+      action: "security.login_failed",
+      targetType: "user",
+      targetId: user.id,
+      ipAddress: meta.ip,
+      location: meta.location,
+    },
+  })
+
+  if (recentFailures >= 5) {
+    const admins = await prisma.user.findMany({
+      where: { role: "super_admin", isDeleted: false, status: "active" },
+      select: { id: true },
+    })
+    await prisma.auditLog.create({
+      data: {
+        action: "security.bruteforce_suspected",
+        targetType: "user",
+        targetId: user.id,
+        ipAddress: meta.ip,
+        location: meta.location,
+        reason: `${recentFailures} failed attempts in 15 minutes`,
+      },
+    })
+    if (admins.length) {
+      await prisma.notification.createMany({
+        data: admins.map((a) => ({
+          userId: a.id,
+          title: "Suspicious login activity",
+          message: `${recentFailures}+ failed logins from ${meta.ip} (${meta.location}). Review and block in Security.`,
+        })),
+      })
+    }
+
+    await sendSecurityAlert(
+      "Kinora: suspicious login activity",
+      `${recentFailures}+ failed login attempts in 15 minutes.\nIP: ${meta.ip}\nLocation: ${meta.location}\nAccount: ${email}\n\nReview and block this IP from the Security page.`,
+    )
+  }
 }

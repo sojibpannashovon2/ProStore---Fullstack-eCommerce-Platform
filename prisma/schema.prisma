@@ -587,6 +587,17 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 }
 
+model SecurityBlock {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ip        String   @unique
+  reason    String?
+  isActive  Boolean  @default(true)
+  createdBy String?  @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([isActive], map: "SecurityBlock_isActive_idx")
+}
+
 model Account {
   userId            String  @db.Uuid
   type              String

@@ -87,6 +87,10 @@ export const ADMIN_LINKS = [
       title: "Deleted items",
       href: "/admin/deleted",
     },
+    {
+      title: "Security",
+      href: "/admin/security",
+    },
   ]
 
 export const SELLER_LINKS = [

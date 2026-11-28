@@ -8,6 +8,9 @@ import { prisma } from "@/db/prisma"
 
 import { compare, hash } from "@/lib/encrypt"
 import { recordLoginFailure, recordLoginSuccess } from "@/lib/activity"
+import { isIpBlocked } from "@/lib/security/blocklist"
+import { rateLimit } from "@/lib/security/rate-limit"
+import { getRequestMeta } from "@/lib/security/request-meta"
 
 import { authConfig } from "./auth.config"
 
@@ -28,9 +31,14 @@ export const config = {
         password: { type: "password" },
       },
       async authorize(credentials) {
-        if (credentials == null) return null
+          if (credentials == null) return null
 
-        // Find user in database
+          const meta = await getRequestMeta()
+          const rl = rateLimit(`signin:${meta.ip}`, 10, 15 * 60 * 1000)
+          if (!rl.ok) return null
+          if (await isIpBlocked(meta.ip)) return null
+  
+          // Find user in database
         const user = await prisma.user.findFirst({
           where: {
             email: credentials.email as string,

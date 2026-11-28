@@ -7,7 +7,7 @@ import {
 } from "@/lib/actions/product.actions"
 import { requireAdmin } from "@/lib/auth-guard"
 import { getServerLocale } from "@/lib/i18n/locale"
-import { formatCurrency, formatId } from "@/lib/utils"
+import { formatCurrency, formatDateTime, formatId } from "@/lib/utils"
 
 import { AppPagination } from "@/components/shared/app-pagination"
 import { TranslatedText } from "@/components/shared/translated-text"
@@ -83,6 +83,10 @@ export default async function AdminProductsPage(props: AdminProductsPageProps) {
             <TableHead><TranslatedText text="STOCK" /></TableHead>
             <TableHead><TranslatedText text="RATING" /></TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead>Created by</TableHead>
+            <TableHead>Updated</TableHead>
+            <TableHead>Updated by</TableHead>
             <TableHead className="w-[100px]"><TranslatedText text="ACTIONS" /></TableHead>
           </TableRow>
         </TableHeader>
@@ -115,6 +119,22 @@ export default async function AdminProductsPage(props: AdminProductsPageProps) {
                       ? "Approved"
                       : "Pending review"}
                 </Badge>
+              </TableCell>
+              <TableCell className="text-xs">
+                {formatDateTime(product.createdAt).dateOnly}
+              </TableCell>
+              <TableCell className="text-xs">
+                {(product as { createdBy?: string | null }).createdBy
+                  ? formatId((product as { createdBy?: string | null }).createdBy as string)
+                  : "—"}
+              </TableCell>
+              <TableCell className="text-xs">
+                {formatDateTime(product.updatedAt).dateTime}
+              </TableCell>
+              <TableCell className="text-xs">
+                {(product as { updatedBy?: string | null }).updatedBy
+                  ? formatId((product as { updatedBy?: string | null }).updatedBy as string)
+                  : "—"}
               </TableCell>
               <TableCell className="flex gap-1">
                 {!product.isApproved && !product.isArchived && (

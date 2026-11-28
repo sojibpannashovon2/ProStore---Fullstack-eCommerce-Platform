@@ -10,6 +10,8 @@ import {
 } from "@/lib/i18n/translations"
 import { formatCurrency } from "@/lib/utils"
 import { runCustomShoppingAgent } from "@/lib/ai/custom-shopping-agent"
+import { rateLimit } from "@/lib/security/rate-limit"
+import { getRequestMeta } from "@/lib/security/request-meta"
 
 const requestSchema = z.object({
   locale: z.enum(["bn", "en"]),
@@ -152,6 +154,16 @@ function getErrorMessage(locale: Locale, model: string) {
 }
 
 export async function POST(request: Request) {
+  const meta = await getRequestMeta()
+  const rl = rateLimit(`ai:${meta.ip}`, 20, 60 * 1000)
+  if (!rl.ok) {
+    return apiError(
+      "RATE_LIMITED",
+      "Too many requests. Please slow down.",
+      429,
+    )
+  }
+
   let body: unknown
 
   try {
